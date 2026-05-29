@@ -25,14 +25,14 @@ jobs:
       - name: Build containers
         run: docker compose build
 
-      - name: Start containers
-        run: docker compose up -d
+      - name: Start databases
+        run: docker compose up -d db test_db
 
       - name: Run lint
-        run: docker compose exec -T api ruff check .
+        run: docker compose run --rm api ruff check .
 
       - name: Run tests
-        run: docker compose exec -T api pytest -v
+        run: docker compose run --rm api pytest -v
 
       - name: Stop containers
         if: always()
