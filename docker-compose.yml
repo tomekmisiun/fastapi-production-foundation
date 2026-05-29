@@ -8,6 +8,8 @@ services:
     depends_on:
       - db
       - test_db
+    volumes:
+      - .:/app
 
   db:
     image: postgres:17
