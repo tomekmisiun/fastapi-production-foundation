@@ -84,3 +84,59 @@ def test_me_unauthorized(client):
     response = client.get("/auth/me")
 
     assert response.status_code == 401
+
+
+def test_refresh_token(client):
+    register_data = {
+        "email": "test@example.com",
+        "password": "password123",
+    }
+
+    client.post("/auth/register", json=register_data)
+
+    login_response = client.post(
+        "/auth/login",
+        json=register_data,
+    )
+
+    refresh_token = login_response.json()["refresh_token"]
+
+    response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+
+def test_refresh_with_access_token(client):
+    register_data = {
+        "email": "test2@example.com",
+        "password": "password123",
+    }
+
+    client.post("/auth/register", json=register_data)
+
+    login_response = client.post(
+        "/auth/login",
+        json=register_data,
+    )
+
+    access_token = login_response.json()["access_token"]
+
+    response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": access_token},
+    )
+
+    assert response.status_code == 401
+
+
+def test_refresh_with_invalid_token(client):
+    response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": "invalid-token"},
+    )
+
+    assert response.status_code == 401

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = Field(default="postgresql://app_user:app_password@db:5432/app_db")
     secret_key: str = "change-me"
+    algorithm: str = "HS256"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     

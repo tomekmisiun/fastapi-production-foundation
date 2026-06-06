@@ -1,7 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    hash_password,
+    verify_password,
+)
 from app.models.user import User
 from app.schemas.auth import UserCreate, UserLogin
 
@@ -51,7 +56,10 @@ def authenticate_user(db: Session, login_data: UserLogin) -> User:
     return user
 
 
-def login_user(db: Session, login_data: UserLogin) -> str:
+def login_user(db: Session, login_data: UserLogin) -> tuple[str, str]:
     user = authenticate_user(db, login_data)
 
-    return create_access_token(subject=str(user.id))
+    access_token = create_access_token(subject=str(user.id))
+    refresh_token = create_refresh_token(subject=str(user.id))
+
+    return access_token, refresh_token
