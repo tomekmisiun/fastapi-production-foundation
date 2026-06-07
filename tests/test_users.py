@@ -414,3 +414,92 @@ def test_admin_can_search_users_by_email(db, client, admin_user):
 
     assert len(data) == 1
     assert data[0]["email"] == "tomek@example.com"
+
+
+def test_admin_can_deactivate_user(
+    db,
+    client,
+    admin_user,
+    regular_user,
+):
+    response = client.patch(
+        f"/users/{regular_user['id']}/deactivate",
+        headers=admin_user["headers"],
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["is_active"] is False
+
+
+def test_admin_can_activate_user(
+    db,
+    client,
+    admin_user,
+    regular_user,
+):
+    client.patch(
+        f"/users/{regular_user['id']}/deactivate",
+        headers=admin_user["headers"],
+    )
+
+    response = client.patch(
+        f"/users/{regular_user['id']}/activate",
+        headers=admin_user["headers"],
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["is_active"] is True
+
+
+def test_deactivate_nonexistent_user_returns_404(
+    client,
+    admin_user,
+):
+    response = client.patch(
+        "/users/99999/deactivate",
+        headers=admin_user["headers"],
+    )
+
+    assert response.status_code == 404
+
+
+def test_activate_nonexistent_user_returns_404(
+    client,
+    admin_user,
+):
+    response = client.patch(
+        "/users/99999/activate",
+        headers=admin_user["headers"],
+    )
+
+    assert response.status_code == 404
+
+
+def test_regular_user_cannot_deactivate_user(
+    client,
+    regular_user,
+):
+    response = client.patch(
+        f"/users/{regular_user['id']}/deactivate",
+        headers=regular_user["headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_regular_user_cannot_activate_user(
+    client,
+    regular_user,
+):
+    response = client.patch(
+        f"/users/{regular_user['id']}/activate",
+        headers=regular_user["headers"],
+    )
+
+    assert response.status_code == 403

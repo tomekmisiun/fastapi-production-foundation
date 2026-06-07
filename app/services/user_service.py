@@ -71,3 +71,29 @@ def update_user(
 def delete_user(db: Session, user: User) -> None:
     db.delete(user)
     db.commit()
+
+
+def deactivate_user(db: Session, user_id: int) -> User | None:
+    user = get_user_by_id(db, user_id)
+
+    if not user:
+        return None
+
+    user.is_active = False
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def activate_user(db: Session, user_id: int) -> User | None:
+    user = get_user_by_id(db, user_id)
+
+    if not user:
+        return None
+
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+
+    return user
