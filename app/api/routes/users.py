@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from enum import Enum
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user, require_role
@@ -6,11 +8,24 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 from app.services.user_service import (
-    get_user_by_id, 
-    get_users, 
-    update_user,
     delete_user,
+    get_user_by_id,
+    get_users,
+    update_user,
 )
+
+
+class UserSortBy(str, Enum):
+    id = "id"
+    email = "email"
+    role = "role"
+    is_active = "is_active"
+
+
+class SortOrder(str, Enum):
+    asc = "asc"
+    desc = "desc"
+
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -19,8 +34,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 def list_users(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
-    sort_by: str = Query("id"),
-    sort_order: str = Query("asc"),
+    sort_by: UserSortBy = Query(UserSortBy.id),
+    sort_order: SortOrder = Query(SortOrder.asc),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
@@ -30,9 +45,10 @@ def list_users(
         db=db,
         skip=skip,
         limit=size,
-        sort_by=sort_by,
-        sort_order=sort_order,
+        sort_by=sort_by.value,
+        sort_order=sort_order.value,
     )
+
 
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(

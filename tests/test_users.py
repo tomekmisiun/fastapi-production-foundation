@@ -262,13 +262,13 @@ def test_pagination_size_must_not_exceed_limit(client, admin_user):
     assert response.status_code == 422
 
 
-def test_admin_can_sort_users_by_email_asc(db, client, admin_user):
+def test_admin_can_sort_users_by_email_desc(db, client, admin_user):
     create_user_and_login(db, client, "c-user@example.com")
     create_user_and_login(db, client, "a-user@example.com")
     create_user_and_login(db, client, "b-user@example.com")
 
     response = client.get(
-        "/users/?sort_by=email&sort_order=asc",
+        "/users/?sort_by=email&sort_order=desc&page=1&size=100",
         headers=admin_user["headers"],
     )
 
@@ -276,4 +276,36 @@ def test_admin_can_sort_users_by_email_asc(db, client, admin_user):
 
     emails = [user["email"] for user in response.json()]
 
-    assert emails == sorted(emails)
+    filtered_emails = [
+        email
+        for email in emails
+        if email in {
+            "a-user@example.com",
+            "b-user@example.com",
+            "c-user@example.com",
+        }
+    ]
+
+    assert filtered_emails == [
+        "c-user@example.com",
+        "b-user@example.com",
+        "a-user@example.com",
+    ]
+
+
+def test_invalid_sort_order_returns_422(client, admin_user):
+    response = client.get(
+        "/users/?sort_by=email&sort_order=banana&page=1&size=100",
+        headers=admin_user["headers"],
+    )
+
+    assert response.status_code == 422
+
+
+def test_invalid_sort_by_returns_422(client, admin_user):
+    response = client.get(
+        "/users/?sort_by=banana&sort_order=asc&page=1&size=100",
+        headers=admin_user["headers"],
+    )
+
+    assert response.status_code == 422
