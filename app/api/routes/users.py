@@ -43,6 +43,7 @@ def list_users(
     sort_order: SortOrder = Query(SortOrder.asc),
     role: UserRole | None = None,
     is_active: bool | None = None,
+    search: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
@@ -56,6 +57,7 @@ def list_users(
     sort_order=sort_order.value,
     role=role.value if role else None,
     is_active=is_active,
+    search=search,
 )
 
 

@@ -12,6 +12,7 @@ def get_users(
     sort_order: str = "asc",
     role: str | None = None,
     is_active: bool | None = None,
+    search=None,
 ):
     allowed_sort_fields = {
         "id": User.id,
@@ -34,6 +35,9 @@ def get_users(
         sort_column = sort_column.desc()
     else:
         sort_column = sort_column.asc()
+
+    if search is not None:
+        query = query.filter(User.email.ilike(f"%{search}%"))
 
     return (
         query
