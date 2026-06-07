@@ -8,6 +8,8 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 from app.services.user_service import (
+    activate_user,
+    deactivate_user,
     delete_user,
     get_user_by_id,
     get_users,
@@ -109,6 +111,40 @@ def patch_user(
     return update_user(db, user, user_update)
 
 
+@router.patch("/{user_id}/deactivate", response_model=UserRead)
+def deactivate_user_endpoint(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    user = deactivate_user(db, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return user
+
+
+@router.patch("/{user_id}/activate", response_model=UserRead)
+def activate_user_endpoint(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    user = activate_user(db, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return user
+
+    
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_user(
     user_id: int,
