@@ -384,3 +384,33 @@ def test_invalid_role_filter_returns_422(client, admin_user):
     )
 
     assert response.status_code == 422
+
+
+def test_admin_can_search_users_by_email(db, client, admin_user):
+    client.post(
+        "/auth/register",
+        json={
+            "email": "tomek@example.com",
+            "password": "password123",
+        },
+    )
+
+    client.post(
+        "/auth/register",
+        json={
+            "email": "admin@gmail.com",
+            "password": "password123",
+        },
+    )
+
+    response = client.get(
+        "/users?search=tomek",
+        headers=admin_user["headers"],
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["email"] == "tomek@example.com"
