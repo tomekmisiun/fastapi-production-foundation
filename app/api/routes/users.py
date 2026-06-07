@@ -17,10 +17,18 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/", response_model=list[UserRead])
 def list_users(
+    page: int = 1,
+    size: int = 10,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
-    return get_users(db)
+    skip = (page - 1) * size
+
+    return get_users(
+        db=db,
+        skip=skip,
+        limit=size,
+    )
 
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(

@@ -188,3 +188,43 @@ def test_user_cannot_delete_other_user(db, client):
     )
 
     assert response.status_code == 403
+
+
+def test_admin_can_list_users_with_pagination(db, client):
+    token, _ = create_user_and_login(db, client, "pagination-admin@example.com")
+    make_admin(db, "pagination-admin@example.com")
+
+    for i in range(15):
+        create_user_and_login(
+            db,
+            client,
+            f"pagination-user-{i}@example.com",
+        )
+
+    response = client.get(
+        "/users/?page=1&size=5",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) == 5
+
+
+def test_admin_can_list_second_page(db, client):
+    token, _ = create_user_and_login(db, client, "pagination-admin2@example.com")
+    make_admin(db, "pagination-admin2@example.com")
+
+    for i in range(15):
+        create_user_and_login(
+            db,
+            client,
+            f"pagination-page2-user-{i}@example.com",
+        )
+
+    response = client.get(
+        "/users/?page=2&size=5",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) == 5
