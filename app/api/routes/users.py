@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user, require_role
@@ -17,8 +17,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/", response_model=list[UserRead])
 def list_users(
-    page: int = 1,
-    size: int = 10,
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):

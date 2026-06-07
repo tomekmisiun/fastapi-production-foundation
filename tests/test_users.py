@@ -228,3 +228,51 @@ def test_admin_can_list_second_page(db, client):
 
     assert response.status_code == 200
     assert len(response.json()) == 5
+
+
+def test_pagination_page_must_be_positive(db, client):
+    token, _ = create_user_and_login(
+        db,
+        client,
+        "pagination-validation-admin@example.com",
+    )
+    make_admin(db, "pagination-validation-admin@example.com")
+
+    response = client.get(
+        "/users/?page=0&size=10",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_pagination_size_must_be_positive(db, client):
+    token, _ = create_user_and_login(
+        db,
+        client,
+        "pagination-validation-admin2@example.com",
+    )
+    make_admin(db, "pagination-validation-admin2@example.com")
+
+    response = client.get(
+        "/users/?page=1&size=0",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_pagination_size_must_not_exceed_limit(db, client):
+    token, _ = create_user_and_login(
+        db,
+        client,
+        "pagination-validation-admin3@example.com",
+    )
+    make_admin(db, "pagination-validation-admin3@example.com")
+
+    response = client.get(
+        "/users/?page=1&size=101",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 422
