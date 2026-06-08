@@ -20,6 +20,22 @@ Use a feature branch workflow.
 - Keep changes scoped to the requested task.
 - Do not make unrelated changes.
 
+## Commit Messages
+
+Prefer Conventional Commits.
+
+Examples:
+
+- feat: add user search
+- fix: correct refresh token validation
+- refactor: move business logic to service layer
+- test: add pagination tests
+- docs: update README for Redis setup
+- chore: update development dependencies
+
+Keep commit messages short and focused.
+One commit should represent one logical change.
+
 ## Commits
 
 - Run relevant tests before commit.
