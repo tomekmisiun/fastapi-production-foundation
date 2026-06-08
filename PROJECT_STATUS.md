@@ -8,7 +8,7 @@ sessions can continue without losing context.
 The project is a FastAPI backend template using SQLAlchemy, Alembic,
 PostgreSQL, Redis, Docker Compose, pytest, Ruff, and GitHub Actions.
 
-Current branch for active feature work: `feature/auth-session-hardening`.
+Current branch for active feature work: `feature/config-hardening`.
 
 Current architecture:
 
@@ -62,117 +62,112 @@ Current documentation/rules setup:
 - Pytest test suite for auth, users, admin, audit logs, and basic health.
 - GitHub Actions CI for Docker build, Ruff, and pytest.
 - README documentation for project setup, API, auth flow, and production gaps.
+- Config hardening for required non-placeholder `SECRET_KEY`, production secret
+  length validation, allowed environment validation, and env-driven Redis
+  settings.
 - AI rules refactor with separated rules for repository, architecture, API,
   backend, database, security, testing, Docker, documentation, and git workflow.
 
 ## 3. Main Production Gaps
 
-1. Config hardening
-   - `SECRET_KEY` has an unsafe default.
-   - Environment-specific config validation is minimal.
-
-2. Migration-aware tests
+1. Migration-aware tests
    - Tests create tables through `Base.metadata.create_all`.
    - The test workflow does not verify that Alembic migrations produce the
      working schema.
 
-3. Structured logging/request IDs
+2. Structured logging/request IDs
    - There is no request ID/correlation ID middleware.
    - Logging is not structured for production debugging.
 
-4. Better health/readiness checks
+3. Better health/readiness checks
    - Health endpoints exist, but liveness/readiness are not clearly separated.
    - Dependency failures are not wrapped in consistent responses.
 
-5. Redis-backed rate limit tests/config
+4. Redis-backed rate limit tests/config
    - Redis rate limiting exists, but it is not configurable through settings and
      has little/no regression coverage.
 
-6. Error response standardization
+5. Error response standardization
     - API errors do not use a consistent response envelope.
 
-7. Docker production hardening
+6. Docker production hardening
     - Docker image is development-oriented.
     - It does not use a non-root runtime user or production-focused image
       hardening.
 
-8. CI improvements
+7. CI improvements
     - CI does not run Alembic migration validation.
     - CI does not explicitly start Redis for Redis-backed behavior tests.
 
-9. Audit log hardening
+8. Audit log hardening
     - Audit actions are raw strings.
     - Audit log listing has minimal filtering.
     - Audit behavior could be made more consistent and queryable.
 
-10. Dependency/version management
+9. Dependency/version management
     - Most dependencies in `requirements.txt` are unpinned.
     - Reproducibility is weaker than expected for production templates.
 
 ## 4. Recommended Roadmap Ordered By ROI
 
-1. Config hardening
-   - Goal: remove unsafe defaults, make Redis configurable, and validate
-     production-critical settings.
-   - Why: prevents accidental insecure deployments.
-
-2. Migration-aware tests
+1. Migration-aware tests
    - Goal: validate Alembic migrations in test/CI workflow.
    - Why: prevents schema drift between models and migrations.
 
-3. Structured logging/request IDs
+2. Structured logging/request IDs
    - Goal: add request correlation and production-readable logs.
    - Why: improves debugging and incident response.
 
-4. Better health/readiness checks
+3. Better health/readiness checks
    - Goal: separate liveness from readiness and make dependency checks robust.
    - Why: improves deployment/runtime operations.
 
-5. Redis-backed rate limit tests/config
+4. Redis-backed rate limit tests/config
    - Goal: make rate limiting configurable and covered by tests.
    - Why: strengthens existing Redis usage and prepares for session logic.
 
-6. Error response standardization
+5. Error response standardization
     - Goal: provide consistent API error responses.
     - Why: improves client experience and API professionalism.
 
-7. Docker production hardening
+6. Docker production hardening
     - Goal: improve image/runtime safety.
     - Why: aligns local template with production expectations.
 
-8. CI improvements
+7. CI improvements
     - Goal: validate migrations and Redis-backed tests in CI.
     - Why: catches more production-relevant failures before merge.
 
-9. Audit log hardening
+8. Audit log hardening
     - Goal: add action constants/enums, filtering, and stronger audit query
       behavior.
     - Why: makes admin/audit behavior more maintainable.
 
-10. Dependency/version management
+9. Dependency/version management
     - Goal: pin or constrain dependencies and define an update process.
     - Why: improves reproducibility.
 
 ## 5. Next Immediate Task
 
-Recommended next branch after `feature/auth-session-hardening`:
+Recommended next branch after `feature/config-hardening`:
 
 ```text
-feature/config-hardening
+feature/migration-aware-tests
 ```
 
 Recommended scope:
 
-- Require a non-placeholder `SECRET_KEY` outside development/test.
-- Keep Redis configuration environment-driven.
-- Add production-sensitive settings validation.
-- Update `.env.example` and README if config changes.
+- Validate Alembic migrations in test or CI workflow.
+- Reduce reliance on `Base.metadata.create_all` as the only schema validation.
+- Keep migration checks focused and reproducible through Docker Compose.
+- Update README if the test workflow changes.
 
 Expected files likely to change:
 
-- `app/core/config.py`
-- `app/core/redis.py`
-- `.env.example`
+- `tests/conftest.py`
+- `tests/database.py`
+- `.github/workflows/ci.yml`
+- `Makefile`
 - `tests`
 - `README.md`
 
