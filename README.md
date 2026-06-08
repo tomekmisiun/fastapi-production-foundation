@@ -70,15 +70,22 @@ Required or supported variables:
 ```text
 DATABASE_URL=postgresql://app_user:app_password@db:5432/app_db
 TEST_DATABASE_URL=postgresql://app_user:app_password@test_db:5432/app_test_db
-SECRET_KEY=change-me
+SECRET_KEY=replace-with-a-strong-random-secret-key
 ENVIRONMENT=development
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_DB=0
 ```
 
-Production deployments must provide a strong `SECRET_KEY` and should not use
-the placeholder values from `.env.example`.
+`SECRET_KEY` is required. Known weak placeholder values such as `change-me` are
+rejected. Production deployments must provide a strong secret with at least 32
+characters.
+
+Supported `ENVIRONMENT` values:
+
+- `development`
+- `test`
+- `production`
 
 ## Migrations
 
@@ -183,7 +190,6 @@ Current default:
 
 ## Known Production Gaps
 
-- Config hardening: `SECRET_KEY` still has an unsafe default.
 - Migration-aware tests: pytest creates tables with SQLAlchemy metadata instead
   of validating Alembic migrations.
 - Structured logging/request IDs are not implemented.
