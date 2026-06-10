@@ -44,7 +44,12 @@ def test_limited_endpoint_returns_429_after_configured_limit(client):
     response = client.get("/health/limited")
 
     assert response.status_code == 429
-    assert response.json() == {"detail": "Too many requests"}
+    assert response.json() == {
+        "error": {
+            "code": "rate_limit_exceeded",
+            "message": "Too many requests",
+        }
+    }
 
 
 def test_limited_endpoint_sets_redis_ttl(client):
