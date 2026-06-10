@@ -8,7 +8,7 @@ sessions can continue without losing context.
 The project is a FastAPI backend template using SQLAlchemy, Alembic,
 PostgreSQL, Redis, Docker Compose, pytest, Ruff, and GitHub Actions.
 
-Current branch for active feature work: `feature/rate-limit-config-tests`.
+Current branch for active feature work: `feature/error-response-standardization`.
 
 Current architecture:
 
@@ -62,6 +62,8 @@ Current documentation/rules setup:
 - Redis-backed example rate-limited endpoint with environment-driven defaults
   and regression coverage for limit enforcement, Redis TTLs, and per-IP
   counters.
+- Centralized API error response envelope for HTTP errors, validation errors,
+  auth failures, not found responses, and rate limit failures.
 - Request ID middleware that generates or preserves `X-Request-ID`, adds it to
   responses, keeps `X-Process-Time`, and logs request start/finish events.
 - Configured stdout logging with request context fields visible in Docker logs.
@@ -81,70 +83,61 @@ Current documentation/rules setup:
 
 ## 3. Main Production Gaps
 
-1. Error response standardization
-    - API errors do not use a consistent response envelope.
-
-2. Docker production hardening
+1. Docker production hardening
     - Docker image is development-oriented.
     - It does not use a non-root runtime user or production-focused image
       hardening.
 
-3. CI improvements
+2. CI improvements
     - CI does not explicitly start Redis for Redis-backed behavior tests.
 
-4. Audit log hardening
+3. Audit log hardening
     - Audit actions are raw strings.
     - Audit log listing has minimal filtering.
     - Audit behavior could be made more consistent and queryable.
 
-5. Dependency/version management
+4. Dependency/version management
     - Most dependencies in `requirements.txt` are unpinned.
     - Reproducibility is weaker than expected for production templates.
 
 ## 4. Recommended Roadmap Ordered By ROI
 
-1. Error response standardization
-    - Goal: provide consistent API error responses.
-    - Why: improves client experience and API professionalism.
-
-2. Docker production hardening
+1. Docker production hardening
     - Goal: improve image/runtime safety.
     - Why: aligns local template with production expectations.
 
-3. CI improvements
+2. CI improvements
     - Goal: validate Redis-backed tests explicitly in CI.
     - Why: catches more production-relevant failures before merge.
 
-4. Audit log hardening
+3. Audit log hardening
     - Goal: add action constants/enums, filtering, and stronger audit query
       behavior.
     - Why: makes admin/audit behavior more maintainable.
 
-5. Dependency/version management
+4. Dependency/version management
     - Goal: pin or constrain dependencies and define an update process.
     - Why: improves reproducibility.
 
 ## 5. Next Immediate Task
 
-Recommended next branch after `feature/rate-limit-config-tests`:
+Recommended next branch after `feature/error-response-standardization`:
 
 ```text
-feature/error-response-standardization
+feature/docker-production-hardening
 ```
 
 Recommended scope:
 
-- Add consistent error response schemas.
-- Add exception handlers for common API errors.
-- Keep internal exception details out of API responses.
-- Add regression tests for validation, auth, not found, and rate limit errors.
+- Add a non-root runtime user.
+- Review Dockerfile for production-oriented defaults.
+- Keep local development workflow working.
+- Update README if Docker usage changes.
 
 Expected files likely to change:
 
-- `app/main.py`
-- `app/schemas`
-- `app/api`
-- `tests`
+- `Dockerfile`
+- `docker-compose.yml`
 - `README.md`
 
 Expected validation:
