@@ -137,6 +137,8 @@ REDIS_DB=0
 LOG_LEVEL=INFO
 RATE_LIMIT_DEFAULT_LIMIT=5
 RATE_LIMIT_DEFAULT_WINDOW_SECONDS=60
+PASSWORD_RESET_RATE_LIMIT_LIMIT=3
+PASSWORD_RESET_RATE_LIMIT_WINDOW_SECONDS=300
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=
@@ -301,6 +303,18 @@ an HMAC-SHA256 token hash in the database. Raw reset tokens are not stored in
 PostgreSQL or Redis. Reset tokens are single-use and expire after
 `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`. Password reset request responses do not
 reveal whether an account exists or is active.
+
+Password reset requests have dedicated Redis-backed rate limiting:
+
+- `PASSWORD_RESET_RATE_LIMIT_LIMIT=3`
+- `PASSWORD_RESET_RATE_LIMIT_WINDOW_SECONDS=300`
+
+Password reset request and confirm events are written to audit logs as system
+audit entries. Expired password reset tokens can be cleaned up with:
+
+```bash
+docker compose run --rm api python -m app.password_reset_cleanup
+```
 
 ## Email
 
@@ -556,6 +570,4 @@ sum by (method, path, status_code) (rate(http_requests_total[5m]))
 
 ## Known Production Gaps
 
-- Password reset rate limiting.
-- Audit log integration for password reset events.
-- Automatic cleanup of expired password reset tokens.
+- Schedule automation for expired password reset token cleanup.

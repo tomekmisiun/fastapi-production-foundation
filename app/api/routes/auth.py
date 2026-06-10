@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.rate_limit import password_reset_rate_limit
 from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -74,10 +75,13 @@ def logout(token_data: LogoutRequest):
 
 
 @router.post("/password-reset/request", response_model=MessageResponse)
-def request_reset_password(
+async def request_reset_password(
+    request: Request,
     reset_request: PasswordResetRequest,
     db: Session = Depends(get_db),
 ):
+    request.scope["_json"] = {"email": str(reset_request.email)}
+    password_reset_rate_limit(request)
     message = request_password_reset(db, reset_request)
 
     return MessageResponse(message=message)

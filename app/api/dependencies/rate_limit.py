@@ -1,3 +1,5 @@
+import hashlib
+
 from fastapi import HTTPException, Request
 
 from app.core.config import settings
@@ -35,3 +37,29 @@ def rate_limit(limit: int | None = None, window_seconds: int | None = None):
             )
 
     return dependency
+
+
+def password_reset_rate_limit(request: Request):
+    client_ip = request.client.host
+    body = request.scope.get("_json")
+
+    if isinstance(body, dict):
+        email = str(body.get("email", "")).lower()
+    else:
+        email = ""
+
+    email_hash = hashlib.sha256(email.encode("utf-8")).hexdigest()
+    key = f"rate_limit:password_reset:{client_ip}:{email_hash}"
+    current_count = redis_client.incr(key)
+
+    if current_count == 1:
+        redis_client.expire(
+            key,
+            settings.password_reset_rate_limit_window_seconds,
+        )
+
+    if current_count > settings.password_reset_rate_limit_limit:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests",
+        )
