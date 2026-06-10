@@ -8,7 +8,7 @@ sessions can continue without losing context.
 The project is a FastAPI backend template using SQLAlchemy, Alembic,
 PostgreSQL, Redis, Docker Compose, pytest, Ruff, uv, and GitHub Actions.
 
-Current branch for active feature work: `chore/dependency-update-policy`.
+Current branch for active feature work: `main`.
 
 Current architecture:
 
@@ -90,34 +90,136 @@ Current documentation/rules setup:
 
 ## 3. Main Production Gaps
 
-No main production gaps are currently tracked in this file.
+1. Password Reset + Email System
+    - The auth flow does not include password reset endpoints, reset token
+      storage, email delivery configuration, or email test strategy.
+2. Background Jobs with Redis-backed worker
+    - The project uses Redis for request-time concerns, but does not have a
+      background worker for async tasks such as email delivery.
+3. Prometheus Metrics + Grafana dashboard
+    - The project has logs through Promtail/Loki/Grafana, but no Prometheus
+      metrics endpoint, scrape config, or dashboard for request and dependency
+      metrics.
+4. Redis Caching for selected read endpoints
+    - Redis exists, but read endpoint caching is not implemented for selected
+      low-risk queries.
+5. File Upload with S3-compatible storage / MinIO
+    - The project does not support file uploads, object storage configuration,
+      local MinIO development, or upload validation.
 
 ## 4. Recommended Roadmap Ordered By ROI
 
-Reassess the backend after the dependency management work is merged and choose
-the next production-readiness improvement from the current project state.
+1. Password Reset + Email System
+    - Goal: add a production-oriented password reset flow and email delivery
+      foundation.
+    - Recommended scope: request reset endpoint, confirm reset endpoint,
+      secure single-use reset tokens with expiry, email sender abstraction,
+      environment-driven email settings, and tests for success, expiry, reuse,
+      invalid token, inactive user, and no user enumeration.
+    - Files likely to change: `app/api/routes/auth.py`,
+      `app/services/auth_service.py`, `app/core/config.py`,
+      `app/core/security.py`, `app/schemas/auth.py`, `app/models`,
+      `alembic/versions`, `tests/test_auth.py`, `.env.example`, `README.md`,
+      `PROJECT_STATUS.md`, `pyproject.toml`, and `uv.lock` if an email library
+      is approved.
+    - Validation: `docker compose run --rm api ruff check .`,
+      `docker compose run --rm api pytest -v`, and
+      `docker compose run --rm api alembic upgrade head` if a migration is
+      added.
+2. Background Jobs with Redis-backed worker
+    - Goal: move async side effects, especially email sending, out of request
+      handlers.
+    - Recommended scope: choose an approved worker library or explicit Redis
+      queue approach, add worker service wiring, Docker Compose worker service,
+      retry/error handling strategy, and focused tests for job enqueueing.
+    - Files likely to change: `app/services`, `app/core`, `docker-compose.yml`,
+      `.env.example`, `README.md`, `tests`, `pyproject.toml`, and `uv.lock`.
+    - Validation: `docker compose config`, `docker compose build api`,
+      `docker compose run --rm api ruff check .`, and
+      `docker compose run --rm api pytest -v`.
+3. Prometheus Metrics + Grafana dashboard
+    - Goal: add operational metrics alongside the existing log stack.
+    - Recommended scope: metrics middleware, `/metrics` endpoint, Prometheus
+      service in local observability Compose, Grafana datasource/dashboard
+      provisioning, and tests that verify metrics are exposed without leaking
+      sensitive data.
+    - Files likely to change: `app/core`, `app/main.py`, `app/api/routes`,
+      `docker-compose.observability.yml`, `observability`, `README.md`,
+      `tests`, `pyproject.toml`, and `uv.lock`.
+    - Validation: `docker compose config`,
+      `docker compose -f docker-compose.yml -f docker-compose.observability.yml config`,
+      `docker compose run --rm api ruff check .`, and
+      `docker compose run --rm api pytest -v`.
+4. Redis Caching for selected read endpoints
+    - Goal: add explicit, testable caching for selected safe read paths.
+    - Recommended scope: pick low-risk read endpoints, define cache keys and
+      TTLs, add invalidation on writes, keep behavior opt-in and
+      environment-driven, and add regression tests for hits, misses, expiry,
+      and invalidation.
+    - Files likely to change: `app/api/dependencies`, `app/services`,
+      `app/core/redis.py`, `app/core/config.py`, `tests`, `.env.example`,
+      `README.md`, and `PROJECT_STATUS.md`.
+    - Validation: `docker compose run --rm api ruff check .` and
+      `docker compose run --rm api pytest -v`.
+5. File Upload with S3-compatible storage / MinIO
+    - Goal: support validated file uploads using local MinIO and
+      S3-compatible storage configuration.
+    - Recommended scope: storage service abstraction, upload endpoint, file
+      metadata model if needed, size/type validation, MinIO service in Docker
+      Compose, safe local env examples, and tests for validation and storage
+      interactions.
+    - Files likely to change: `app/api/routes`, `app/services`, `app/schemas`,
+      `app/models`, `app/core/config.py`, `alembic/versions`,
+      `docker-compose.yml`, `.env.example`, `README.md`, `tests`,
+      `pyproject.toml`, and `uv.lock`.
+    - Validation: `docker compose config`, `docker compose build api`,
+      `docker compose run --rm api ruff check .`,
+      `docker compose run --rm api pytest -v`, and
+      `docker compose run --rm api alembic upgrade head` if a migration is
+      added.
 
 ## 5. Next Immediate Task
 
-Recommended next branch after `chore/dependency-update-policy`:
+Implementation should happen in a separate future branch, not on `main`.
+
+Recommended next branch:
 
 ```text
-to-be-decided
+feature/password-reset-email
 ```
 
 Recommended scope:
 
-- Re-run a production-readiness gap analysis.
-- Pick the next highest-ROI backend improvement.
+- Add `POST /auth/password-reset/request`.
+- Add `POST /auth/password-reset/confirm`.
+- Store password reset tokens securely with expiry and single-use semantics.
+- Add an email sender abstraction and environment-driven email configuration.
+- Avoid user enumeration in reset request responses.
+- Decide whether reset tokens live in PostgreSQL or Redis before coding.
+- Add regression tests for successful reset, invalid token, expired token,
+  reused token, inactive user handling, and no user enumeration.
+- Update README because the feature changes auth behavior and configuration.
+- Update `PROJECT_STATUS.md` after the feature is completed.
 
 Expected files likely to change:
 
-- To be decided after the next gap analysis.
+- `app/api/routes/auth.py`
+- `app/services/auth_service.py`
+- `app/core/config.py`
+- `app/core/security.py`
+- `app/schemas/auth.py`
+- `app/models`
+- `alembic/versions`
+- `tests/test_auth.py`
+- `.env.example`
+- `README.md`
+- `PROJECT_STATUS.md`
+- `pyproject.toml` and `uv.lock` if an email library is approved
 
 Expected validation:
 
-- `ruff check .`
-- `pytest`
+- `docker compose run --rm api ruff check .`
+- `docker compose run --rm api pytest -v`
 - `alembic upgrade head` only if the implementation requires a migration.
 
 ## 6. Rules For Updating This File
