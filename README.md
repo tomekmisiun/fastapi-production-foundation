@@ -216,6 +216,34 @@ Readiness and dependency endpoints return `200` with `status: ok` when checks
 pass. Dependency failures return `503` with a consistent response body and do
 not expose internal exception details.
 
+## Error Responses
+
+API errors use a consistent response envelope:
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "User not found"
+  }
+}
+```
+
+Validation errors include `details` with validation failure metadata:
+
+```json
+{
+  "error": {
+    "code": "validation_error",
+    "message": "Request validation failed",
+    "details": []
+  }
+}
+```
+
+The envelope preserves HTTP status codes and relevant headers such as
+`WWW-Authenticate`, while avoiding internal exception details in API responses.
+
 ## Observability
 
 Every response includes:
@@ -280,7 +308,6 @@ to log only to stdout/stderr and does not write log files.
 
 ## Known Production Gaps
 
-- Error response standardization is not implemented.
 - Docker image is development-oriented and not hardened.
 - CI does not validate migrations explicitly.
 - Audit log filtering/action constants can be improved.
