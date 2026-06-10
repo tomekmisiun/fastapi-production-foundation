@@ -50,6 +50,9 @@ Current documentation/rules setup:
 - `/auth/logout` endpoint.
 - Password reset request and confirm endpoints with single-use hashed reset
   tokens and SMTP-backed email delivery abstraction.
+- Password reset hardening with dedicated Redis-backed rate limiting, system
+  audit log entries for reset request/confirm events, and cleanup command for
+  expired reset tokens.
 - Redis-backed background worker, Docker Compose worker service, job retry
   handling, failed job queue, and password reset email delivery through worker
   jobs.
@@ -103,23 +106,22 @@ Current documentation/rules setup:
 
 ## 3. Main Production Gaps
 
-1. Password reset hardening follow-ups
-    - Password reset does not yet include dedicated reset rate limiting, audit
-      log integration, or automatic cleanup of expired tokens.
+1. Scheduled maintenance jobs
+    - Expired password reset token cleanup exists as a command, but is not yet
+      scheduled automatically.
 
 ## 4. Recommended Roadmap Ordered By ROI
 
-1. Password reset hardening follow-ups
-    - Goal: harden the password reset flow beyond the baseline implementation.
-    - Recommended scope: dedicated reset rate limiting, audit log integration,
-      automatic cleanup of expired reset tokens, and security monitoring notes.
-    - Files likely to change: `app/api/dependencies`, `app/services`,
-      `app/models`, `alembic/versions`, `README.md`, `PROJECT_STATUS.md`, and
-      `tests`.
-    - Validation: `docker compose run --rm api ruff check .`,
-      `docker compose run --rm api pytest -v`, and
-      `docker compose run --rm api alembic upgrade head` if a migration is
-      added.
+1. Scheduled maintenance jobs
+    - Goal: automate recurring maintenance work such as expired password reset
+      token cleanup.
+    - Recommended scope: scheduled worker command or lightweight scheduler,
+      Docker wiring, logging, tests, and README documentation.
+    - Files likely to change: `app/worker.py`, `app/services`,
+      `docker-compose.yml`, `README.md`, `PROJECT_STATUS.md`, and `tests`.
+    - Validation: `docker compose config`,
+      `docker compose run --rm api ruff check .`, and
+      `docker compose run --rm api pytest -v`.
 
 ## 5. Next Immediate Task
 
@@ -128,33 +130,31 @@ Implementation should happen in a separate future branch, not on `main`.
 Recommended next branch:
 
 ```text
-feature/password-reset-hardening
+feature/scheduled-maintenance-jobs
 ```
 
 Recommended scope:
 
-- Add dedicated password reset rate limiting.
-- Add audit log integration for password reset events.
-- Add automatic cleanup for expired password reset tokens.
-- Add tests for reset rate limits, audit behavior, and cleanup behavior.
-- Update README because the feature changes auth/security behavior.
+- Add scheduled execution for expired password reset token cleanup.
+- Keep scheduling environment-driven.
+- Add tests for scheduler/command behavior.
+- Update README because the feature changes runtime operations.
 - Update `PROJECT_STATUS.md` after the feature is completed.
 
 Expected files likely to change:
 
-- `app/api/dependencies`
+- `app/worker.py`
 - `app/services`
-- `app/models`
-- `alembic/versions`
+- `docker-compose.yml`
 - `README.md`
 - `PROJECT_STATUS.md`
 - `tests`
 
 Expected validation:
 
+- `docker compose config`
 - `docker compose run --rm api ruff check .`
 - `docker compose run --rm api pytest -v`
-- `docker compose run --rm api alembic upgrade head` if a migration is added.
 
 ## 6. Rules For Updating This File
 
