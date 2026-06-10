@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 from types import SimpleNamespace
+from uuid import uuid4
 
-from app.core.security import verify_password
+from app.core.security import hash_password_reset_token, verify_password
+from app.models.audit_log import AuditAction, AuditLog
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 from app.services.email_templates import build_password_reset_url
-from app.services.password_reset_service import create_password_reset_token_and_send_email
+from app.services.password_reset_service import (
+    cleanup_expired_password_reset_tokens,
+    create_password_reset_token_and_send_email,
+)
 
 
 class FakeEmailService:
@@ -361,6 +366,48 @@ def test_password_reset_request_for_active_user_enqueues_email_job(
     assert db.query(PasswordResetToken).count() == token_count_before
 
 
+def test_password_reset_request_is_rate_limited(client):
+    email = f"rate-limit-reset-{uuid4().hex}@example.com"
+
+    responses = [
+        client.post(
+            "/auth/password-reset/request",
+            json={"email": email},
+        )
+        for _ in range(4)
+    ]
+
+    assert [response.status_code for response in responses] == [200, 200, 200, 429]
+
+
+def test_password_reset_request_creates_audit_log(db, client, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.password_reset_service.enqueue_job",
+        lambda job_type, payload: SimpleNamespace(id="job-id"),
+    )
+    register_data = {
+        "email": "reset-request-audit@example.com",
+        "password": "password123",
+    }
+    client.post("/auth/register", json=register_data)
+
+    response = client.post(
+        "/auth/password-reset/request",
+        json={"email": register_data["email"]},
+    )
+
+    user = db.query(User).filter(User.email == register_data["email"]).one()
+    audit_log = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == AuditAction.PASSWORD_RESET_REQUESTED.value)
+        .filter(AuditLog.target_user_id == user.id)
+        .one()
+    )
+
+    assert response.status_code == 200
+    assert audit_log.admin_id is None
+
+
 def test_password_reset_request_for_missing_user_does_not_leak_account_status(
     db,
     client,
@@ -478,6 +525,40 @@ def test_password_reset_confirm_updates_password_and_marks_token_used(
 
     assert old_login_response.status_code == 401
     assert new_login_response.status_code == 200
+
+
+def test_password_reset_confirm_creates_audit_log(db, client, monkeypatch):
+    email_service = FakeEmailService()
+    monkeypatch.setattr(
+        "app.services.password_reset_service.get_email_service",
+        lambda: email_service,
+    )
+    register_data = {
+        "email": "reset-confirm-audit@example.com",
+        "password": "password123",
+    }
+    client.post("/auth/register", json=register_data)
+    raw_token = create_reset_token_for_user(
+        db,
+        register_data["email"],
+        email_service,
+    )
+
+    response = client.post(
+        "/auth/password-reset/confirm",
+        json={"token": raw_token, "new_password": "new-password123"},
+    )
+
+    user = db.query(User).filter(User.email == register_data["email"]).one()
+    audit_log = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == AuditAction.PASSWORD_RESET_CONFIRMED.value)
+        .filter(AuditLog.target_user_id == user.id)
+        .one()
+    )
+
+    assert response.status_code == 200
+    assert audit_log.admin_id is None
 
 
 def test_password_reset_confirm_rejects_invalid_token(client):
@@ -623,3 +704,38 @@ def test_password_reset_url_is_built_from_configured_base_url():
 
     assert reset_url.startswith("https://app.example.com/reset-password?")
     assert parse_qs(parsed_url.query)["token"] == ["raw-token"]
+
+
+def test_cleanup_expired_password_reset_tokens_removes_only_expired_tokens(
+    db,
+    client,
+):
+    register_data = {
+        "email": "reset-cleanup@example.com",
+        "password": "password123",
+    }
+    client.post("/auth/register", json=register_data)
+    user = db.query(User).filter(User.email == register_data["email"]).one()
+    expired_token = PasswordResetToken(
+        user_id=user.id,
+        token_hash=hash_password_reset_token("expired-token"),
+        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+    )
+    active_token = PasswordResetToken(
+        user_id=user.id,
+        token_hash=hash_password_reset_token("active-token"),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=30),
+    )
+    db.add(expired_token)
+    db.add(active_token)
+    db.commit()
+
+    deleted_count = cleanup_expired_password_reset_tokens(db)
+
+    remaining_tokens = db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id
+    )
+
+    assert deleted_count >= 1
+    assert remaining_tokens.count() == 1
+    assert remaining_tokens.one().token_hash == active_token.token_hash

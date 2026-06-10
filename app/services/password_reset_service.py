@@ -12,9 +12,11 @@ from app.core.security import (
     hash_password_reset_token,
 )
 from app.models.password_reset_token import PasswordResetToken
+from app.models.audit_log import AuditAction
 from app.models.user import User
 from app.schemas.auth import PasswordResetConfirm, PasswordResetRequest
 from app.services.auth_service import get_user_by_email
+from app.services.audit_log_service import create_audit_log
 from app.services.email_service import EmailDeliveryError, get_email_service
 
 
@@ -35,6 +37,12 @@ def request_password_reset(db: Session, reset_request: PasswordResetRequest) -> 
         return PASSWORD_RESET_RESPONSE_MESSAGE
 
     job = enqueue_password_reset_email_job(user.id)
+    create_audit_log(
+        db=db,
+        admin_id=None,
+        action=AuditAction.PASSWORD_RESET_REQUESTED,
+        target_user_id=user.id,
+    )
     logger.info(
         "password_reset_email_job_enqueued user_id=%s job_id=%s",
         user.id,
@@ -149,6 +157,12 @@ def confirm_password_reset(db: Session, reset_confirm: PasswordResetConfirm) -> 
         .update({"used_at": now}, synchronize_session=False)
     )
     db.commit()
+    create_audit_log(
+        db=db,
+        admin_id=None,
+        action=AuditAction.PASSWORD_RESET_CONFIRMED,
+        target_user_id=user.id,
+    )
 
     logger.info(
         "password_reset_confirmed user_id=%s token_id=%s",
@@ -164,3 +178,16 @@ def raise_invalid_reset_token() -> None:
         status_code=status.HTTP_400_BAD_REQUEST,
         detail=INVALID_RESET_TOKEN_MESSAGE,
     )
+
+
+def cleanup_expired_password_reset_tokens(db: Session) -> int:
+    deleted_count = (
+        db.query(PasswordResetToken)
+        .filter(PasswordResetToken.expires_at < datetime.now(timezone.utc))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+
+    logger.info("password_reset_expired_tokens_cleaned count=%s", deleted_count)
+
+    return deleted_count
