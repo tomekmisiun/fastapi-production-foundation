@@ -61,6 +61,10 @@ Services:
 - `test_db`: PostgreSQL database used by tests
 - `redis`: Redis for rate limiting and token revocation
 
+The API image is built from `Dockerfile`, runs as a non-root `app` user, and
+uses `.dockerignore` to keep local secrets, VCS metadata, virtual environments,
+and cache files out of the build context.
+
 ## Environment Variables
 
 See `.env.example` for application variables and
@@ -308,7 +312,6 @@ to log only to stdout/stderr and does not write log files.
 
 ## Known Production Gaps
 
-- Docker image is development-oriented and not hardened.
 - CI does not validate migrations explicitly.
 - Audit log filtering/action constants can be improved.
 - Dependencies are mostly unpinned.

@@ -8,7 +8,7 @@ sessions can continue without losing context.
 The project is a FastAPI backend template using SQLAlchemy, Alembic,
 PostgreSQL, Redis, Docker Compose, pytest, Ruff, and GitHub Actions.
 
-Current branch for active feature work: `feature/error-response-standardization`.
+Current branch for active feature work: `feature/docker-production-hardening`.
 
 Current architecture:
 
@@ -37,6 +37,8 @@ Current documentation/rules setup:
 - PostgreSQL database setup through SQLAlchemy.
 - Alembic migration setup.
 - Docker Compose setup for API, main database, test database, and Redis.
+- Production-oriented API Dockerfile with a non-root runtime user, Python/pip
+  runtime defaults, explicit build file configuration, and `.dockerignore`.
 - User registration.
 - User login with access and refresh JWTs.
 - Password hashing with bcrypt/passlib.
@@ -83,61 +85,51 @@ Current documentation/rules setup:
 
 ## 3. Main Production Gaps
 
-1. Docker production hardening
-    - Docker image is development-oriented.
-    - It does not use a non-root runtime user or production-focused image
-      hardening.
-
-2. CI improvements
+1. CI improvements
     - CI does not explicitly start Redis for Redis-backed behavior tests.
 
-3. Audit log hardening
+2. Audit log hardening
     - Audit actions are raw strings.
     - Audit log listing has minimal filtering.
     - Audit behavior could be made more consistent and queryable.
 
-4. Dependency/version management
+3. Dependency/version management
     - Most dependencies in `requirements.txt` are unpinned.
     - Reproducibility is weaker than expected for production templates.
 
 ## 4. Recommended Roadmap Ordered By ROI
 
-1. Docker production hardening
-    - Goal: improve image/runtime safety.
-    - Why: aligns local template with production expectations.
-
-2. CI improvements
+1. CI improvements
     - Goal: validate Redis-backed tests explicitly in CI.
     - Why: catches more production-relevant failures before merge.
 
-3. Audit log hardening
+2. Audit log hardening
     - Goal: add action constants/enums, filtering, and stronger audit query
       behavior.
     - Why: makes admin/audit behavior more maintainable.
 
-4. Dependency/version management
+3. Dependency/version management
     - Goal: pin or constrain dependencies and define an update process.
     - Why: improves reproducibility.
 
 ## 5. Next Immediate Task
 
-Recommended next branch after `feature/error-response-standardization`:
+Recommended next branch after `feature/docker-production-hardening`:
 
 ```text
-feature/docker-production-hardening
+feature/ci-redis-validation
 ```
 
 Recommended scope:
 
-- Add a non-root runtime user.
-- Review Dockerfile for production-oriented defaults.
-- Keep local development workflow working.
-- Update README if Docker usage changes.
+- Ensure CI starts every dependency needed by the test suite.
+- Validate Redis-backed tests explicitly in CI.
+- Keep the Docker workflow aligned with local commands.
+- Update README if CI/test workflow changes.
 
 Expected files likely to change:
 
-- `Dockerfile`
-- `docker-compose.yml`
+- `.github/workflows/ci.yml`
 - `README.md`
 
 Expected validation:
