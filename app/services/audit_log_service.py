@@ -5,7 +5,7 @@ from app.models.audit_log import AuditAction, AuditLog
 
 def create_audit_log(
     db: Session,
-    admin_id: int,
+    admin_id: int | None,
     action: AuditAction,
     target_user_id: int | None = None,
 ) -> AuditLog:
