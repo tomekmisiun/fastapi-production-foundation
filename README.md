@@ -297,6 +297,11 @@ integration failures are visible in CI.
 
 ## API Overview
 
+Versioned API routes are mounted under `/api/v1`. Legacy unversioned paths such
+as `/auth` and `/users` remain available for backward compatibility but are
+marked deprecated in OpenAPI. New clients should use `/api/v1` exclusively.
+Infrastructure endpoints (`/health`, `/metrics`) stay unversioned.
+
 Health:
 
 - `GET /health`
@@ -310,33 +315,33 @@ Metrics:
 
 - `GET /metrics`
 
-Auth:
+Auth (`/api/v1/auth`):
 
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
-- `POST /auth/refresh`
-- `POST /auth/logout`
-- `POST /auth/password-reset/request`
-- `POST /auth/password-reset/confirm`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/password-reset/request`
+- `POST /api/v1/auth/password-reset/confirm`
 
-Users:
+Users (`/api/v1/users`):
 
-- `GET /users/`
-- `GET /users/{user_id}`
-- `PATCH /users/{user_id}`
-- `PATCH /users/{user_id}/activate`
-- `PATCH /users/{user_id}/deactivate`
-- `DELETE /users/{user_id}`
+- `GET /api/v1/users/`
+- `GET /api/v1/users/{user_id}`
+- `PATCH /api/v1/users/{user_id}`
+- `PATCH /api/v1/users/{user_id}/activate`
+- `PATCH /api/v1/users/{user_id}/deactivate`
+- `DELETE /api/v1/users/{user_id}`
 
-Admin:
+Admin (`/api/v1/admin`):
 
-- `GET /admin`
-- `GET /admin/audit-logs`
+- `GET /api/v1/admin`
+- `GET /api/v1/admin/audit-logs`
 
-Files:
+Files (`/api/v1/files`):
 
-- `POST /files/upload`
+- `POST /api/v1/files/upload`
 
 Audit log listing supports pagination and filters:
 
@@ -355,16 +360,18 @@ Supported audit actions:
 
 ## Auth Flow
 
-1. Register with `POST /auth/register`.
-2. Login with `POST /auth/login`.
+1. Register with `POST /api/v1/auth/register`.
+2. Login with `POST /api/v1/auth/login`.
 3. Use the returned access token as a bearer token for protected endpoints.
-4. Use the returned refresh token with `POST /auth/refresh` to receive a new
-   access token and a new refresh token.
+4. Use the returned refresh token with `POST /api/v1/auth/refresh` to receive a
+   new access token and a new refresh token.
 5. Refresh token rotation revokes the previous refresh token.
-6. Logout with `POST /auth/logout` by sending the refresh token to revoke it.
+6. Logout with `POST /api/v1/auth/logout` by sending the refresh token to
+   revoke it.
 7. Inactive users cannot log in, use access tokens, or refresh tokens.
-8. Request a password reset with `POST /auth/password-reset/request`.
-9. Confirm the reset with `POST /auth/password-reset/confirm` using the token
+8. Request a password reset with `POST /api/v1/auth/password-reset/request`.
+9. Confirm the reset with `POST /api/v1/auth/password-reset/confirm` using the
+   token
    delivered by email and the new password.
 
 Refresh token revocation is stored in Redis until the revoked token would have
@@ -498,7 +505,7 @@ TTL.
 Authenticated users can upload files with:
 
 ```text
-POST /files/upload
+POST /api/v1/files/upload
 ```
 
 Uploads are stored through an S3-compatible storage service abstraction. The
