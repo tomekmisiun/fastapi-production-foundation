@@ -42,12 +42,12 @@ Production-readiness summary:
   users/admin flows, audit logs, rate limiting, caching, worker jobs, password
   reset, file uploads, health checks, metrics, logs, CI, and migration-aware
   tests.
-- The remaining highest-value work is operational production readiness:
-  deployment flow, staging/production split, secrets, backup/restore, migration
-  rollout, rollback, alerting, tracing/error tracking, worker operations, and
-  runbooks.
-- Anything marked as a production gap below is not implemented yet unless
-  explicitly listed in "Completed Features".
+- The template-wide ROI roadmap below is complete. Remaining work is
+  project-specific: choose hosting, secret manager, backup provider, runtime,
+  and production observability stack, then wire the placeholder deploy workflow
+  to that environment.
+- Anything not listed in "Completed Features" should be treated as not
+  implemented unless a new roadmap item is added explicitly.
 
 ## 2. Completed Features
 
@@ -194,71 +194,35 @@ Items requiring verification before being treated as implemented:
 - Whether the preferred error tracking/tracing stack should be Sentry,
   OpenTelemetry, or both.
 
-## 4. Recommended Roadmap Ordered By ROI
+## 4. Completed Roadmap Ordered By ROI
 
-1. P1 - API versioning and OpenAPI polish
-    - Goal: make the public API contract safer to evolve across projects.
-    - Recommended scope: `/api/v1` routing strategy, compatibility policy,
-      OpenAPI summaries/descriptions/examples, documented error envelope, and
-      regression tests for route availability.
-    - Files likely to change: `app/main.py`, `app/api/routes`, `app/schemas`,
-      `README.md`, `PROJECT_STATUS.md`, and `tests`.
-    - Validation: `docker compose run --rm api ruff check .`,
-      `docker compose run --rm api pytest -v`, and manual OpenAPI review.
+All template-wide roadmap items below are implemented on `main`.
 
-2. P1 - Permission model foundation
-    - Goal: evolve from two roles to reusable authorization patterns for SaaS
-      projects.
-    - Recommended scope: permission constants/policies, dependency helpers,
-      admin/user compatibility, tests, and docs.
-    - Files likely to change: `app/api/dependencies/auth.py`, `app/models`,
-      `app/schemas`, `app/services`, `alembic/versions`, `README.md`,
-      `PROJECT_STATUS.md`, and `tests`.
-    - Validation: `docker compose run --rm api alembic upgrade head`,
-      `docker compose run --rm api ruff check .`, and
-      `docker compose run --rm api pytest -v`.
+| # | Item | Status | Delivered in |
+|---|------|--------|--------------|
+| 1 | API versioning and OpenAPI polish | Done | `app/api/v1.py`, `app/api/legacy.py`, `app/api/openapi.py`, `tests/test_api_versioning.py`, `tests/test_openapi.py`, `tests/test_openapi_contract.py` |
+| 2 | Permission model foundation | Done | `app/core/permissions.py`, `app/services/permission_service.py`, `tests/test_permissions.py` |
+| 3 | Idempotency and webhook security | Done | `app/api/routes/webhooks.py`, `app/services/idempotency_service.py`, `app/services/webhook_service.py`, `tests/test_idempotency.py`, `tests/test_webhooks.py` |
+| 4 | File storage hardening | Done | `app/services/storage_service.py`, `app/core/file_validation.py`, `tests/test_files.py`, `tests/test_file_validation.py` |
+| 5 | CI/CD and security scanning | Done | `.github/workflows/ci.yml`, `release.yml`, `deploy.yml`, `dependency-review.yml`, `.github/dependabot.yml` |
+| 6 | Load/performance testing baseline | Done | `perf/load_baseline.py`, `make load-smoke`, `perf/README.md`, `tests/test_load_baseline.py` |
 
-3. P1 - Idempotency and webhook security foundation
-    - Goal: provide reusable primitives for payment providers, integrations,
-      and async external events without tying the template to one provider.
-    - Recommended scope: idempotency-key persistence, webhook signature helper,
-      replay protection, tests, and provider-neutral documentation.
-    - Files likely to change: `app/api/dependencies`, `app/models`,
-      `app/services`, `app/schemas`, `alembic/versions`, `README.md`,
-      `PROJECT_STATUS.md`, and `tests`.
-    - Validation: `docker compose run --rm api alembic upgrade head`,
-      `docker compose run --rm api ruff check .`, and
-      `docker compose run --rm api pytest -v`.
+Additional template-wide work completed outside the original ROI ordering:
 
-4. P1 - File storage hardening
-    - Goal: make uploads safer for real customer data.
-    - Recommended scope: private object access, presigned URL strategy, content
-      sniffing, malware scanning integration point, lifecycle/cleanup notes,
-      and storage failure tests.
-    - Files likely to change: `app/services/storage_service.py`,
-      `app/api/routes/files.py`, `app/schemas/file.py`, `.env.example`,
-      `README.md`, `PROJECT_STATUS.md`, and `tests`.
-    - Validation: `docker compose run --rm api ruff check .`,
-      `docker compose run --rm api pytest -v`, and MinIO local smoke test.
+- Structured logging foundation
+- Multi-tenancy foundation
+- Operations/scale regression coverage
+- Dependabot automation
+- Local developer experience (`make bootstrap`, `make smoke`, `make validate`)
 
-5. P1 - CI/CD and security scanning
-    - Goal: make the template safer to maintain and release.
-    - Recommended scope: Docker image scan, dependency vulnerability scan,
-      coverage reporting, optional pre-commit check in CI, release image tags,
-      and deployment workflow placeholder.
-    - Files likely to change: `.github/workflows`, `.pre-commit-config.yaml`,
-      `README.md`, `PROJECT_STATUS.md`, and possibly dependency config files.
-    - Validation: GitHub Actions workflow run and local `docker compose build`.
+Suggested follow-up scenarios for downstream projects:
 
-6. P2 - Load/performance testing baseline
-    - Goal: give future projects a reusable way to measure request latency,
-      throughput, Redis behavior, and database pressure.
-    - Recommended scope: lightweight load-test tool choice, baseline scenarios,
-      local run instructions, and performance result documentation format.
-    - Files likely to change: `tests` or `perf/`, `README.md`,
-      `PROJECT_STATUS.md`, and optionally Docker/Makefile helpers.
-    - Validation: local load-test smoke run and normal pytest/Ruff validation
-      if code is added.
+- Run `make load-smoke` against `/health/ready` to include database and Redis
+  dependency latency in local baselines.
+- Replace `.github/workflows/deploy.yml` placeholder steps with the target
+  hosting provider commands.
+- Add project-specific permissions, tenants, and integrations on top of the
+  existing foundations.
 
 ## 5. Next Immediate Task
 
