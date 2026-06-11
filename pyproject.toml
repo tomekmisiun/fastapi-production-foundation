@@ -36,6 +36,7 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ["app"]
 branch = true
+data_file = "/tmp/.coverage"
 
 [tool.coverage.report]
 show_missing = true
