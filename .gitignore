@@ -4,6 +4,7 @@ __pycache__/
 .mypy_cache/
 .uv-cache/
 .coverage
+coverage.xml
 htmlcov/
 dist/
 build/
