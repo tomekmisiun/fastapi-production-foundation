@@ -10,6 +10,7 @@ services:
     environment:
       RUFF_CACHE_DIR: /tmp/.ruff_cache
       PYTEST_ADDOPTS: "-o cache_dir=/tmp/.pytest_cache"
+      COVERAGE_FILE: /tmp/.coverage
     depends_on:
       - db
       - test_db
