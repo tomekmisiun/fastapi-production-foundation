@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, File, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import require_permission
+from app.core.permissions import Permission
 from app.api.openapi import PROTECTED_ERROR_RESPONSES
 from app.db.session import get_db
 from app.models.user import User
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/files", tags=["files"])
 def upload_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.FILES_UPLOAD)),
 ):
     return get_storage_service().upload(
         owner=current_user,

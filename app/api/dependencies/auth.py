@@ -3,9 +3,11 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 
+from app.core.permissions import Permission
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
+from app.services.permission_service import role_includes, user_has_any_permission
 
 
 bearer_scheme = HTTPBearer()
@@ -41,13 +43,27 @@ def get_current_user(
     return user
 
 
+def _forbidden() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Insufficient permissions",
+    )
+
+
+def require_permission(*permissions: Permission):
+    def checker(current_user: User = Depends(get_current_user)) -> User:
+        if not user_has_any_permission(current_user, *permissions):
+            raise _forbidden()
+
+        return current_user
+
+    return checker
+
+
 def require_role(required_role: str):
     def checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role != required_role:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
-            )
+        if not role_includes(current_user.role, required_role):
+            raise _forbidden()
 
         return current_user
 
