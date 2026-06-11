@@ -478,6 +478,17 @@ set. Regular users can read and update only their own profile through self
 permissions, but self-update does not allow changing admin-managed fields such
 as `is_active`.
 
+## Idempotency And Webhooks
+
+The template includes provider-neutral primitives for safe external integrations:
+
+- `Idempotency-Key` persistence through `idempotency_records` for replay-safe
+  response caching.
+- `POST /api/v1/webhooks/inbound` with `X-Webhook-Signature` HMAC verification.
+- `webhook_events` persistence for replay protection by `(provider, event_id)`.
+
+Configure `WEBHOOK_SIGNATURE_SECRET` for local webhook signature tests.
+
 ## Multi-Tenancy
 
 The template includes tenant-aware data isolation:

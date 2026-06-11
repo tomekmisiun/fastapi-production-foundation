@@ -2,10 +2,12 @@ from logging.config import fileConfig
 
 from app.models import (  # noqa: F401
     audit_log,
+    idempotency_record,
     password_reset_token,
     tenant,
     uploaded_file,
     user,
+    webhook_event,
 )
 from app.db.base import Base
 from sqlalchemy import engine_from_config

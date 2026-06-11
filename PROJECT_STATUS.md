@@ -123,6 +123,9 @@ Production-readiness summary:
 - Multi-tenancy foundation with tenant model/migration, `X-Tenant-Slug` auth
   resolution, tenant-scoped users/audit logs/uploads, tenant-safe cache/object
   key prefixes, JWT tenant claims, and regression tests.
+- Idempotency and webhook security foundation with persisted idempotency keys,
+  signed inbound webhook endpoint, replay-protected webhook event storage, and
+  regression tests.
 - Local observability stack with Promtail, Loki, and Grafana for Docker log
   collection and inspection.
 - Prometheus-compatible `/metrics` endpoint, request metrics collection,
@@ -162,38 +165,33 @@ Production-readiness summary:
 
 ## 3. Main Production Gaps
 
-1. P1 - Idempotency and webhook security foundation are missing.
-    - The template does not yet provide idempotency keys, webhook signature
-      verification, replay protection, event persistence, or generic webhook
-      testing helpers.
-
-2. P1 - File upload/storage safety is partial.
+1. P1 - File upload/storage safety is partial.
     - Upload validation, metadata storage, S3-compatible abstraction, and local
       MinIO exist.
     - Missing pieces include presigned download/upload flows, private object
       access policy, object lifecycle rules, malware scanning, content sniffing,
       bucket bootstrap verification, and storage cleanup strategy.
 
-3. P1 - CI/CD quality is incomplete for a reusable production template.
+2. P1 - CI/CD quality is incomplete for a reusable production template.
     - CI runs Docker build, Ruff, Redis-backed tests, and pytest with database
       services.
     - Missing pieces include deployment pipeline, release artifacts, image
       tagging, vulnerability scanning, dependency review, coverage reporting,
       and optional pre-commit enforcement in CI.
 
-4. P1 - Test coverage gaps remain around operations and scale.
+3. P1 - Test coverage gaps remain around operations and scale.
     - Regression coverage is broad for current API behavior.
     - Missing coverage includes backup/restore rehearsal, deployment/migration
       failure scenarios, worker failure replay, object storage edge cases,
       OpenAPI contract checks, load/performance tests, and cache stampede or
       Redis outage behavior.
 
-5. P2 - Dependency/version management is documented but not automated.
+4. P2 - Dependency/version management is documented but not automated.
     - uv is configured and dependency policy is documented.
     - Automated dependency updates, vulnerability alerts, and dependency update
       cadence still require implementation or repository hosting setup.
 
-6. P2 - Local developer experience can be improved further.
+5. P2 - Local developer experience can be improved further.
     - Makefile, Docker Compose, uv, README, and tests are in place.
     - Potential improvements include seed data, smoke-test commands, one-command
       full validation, local production-mode checks, generated API client
@@ -282,22 +280,21 @@ Implementation should happen in a separate future branch, not on `main`.
 Recommended next branch:
 
 ```text
-feature/idempotency-webhook-foundation
+feature/file-storage-hardening
 ```
 
 Recommended scope:
 
-- Add idempotency-key persistence and webhook signature verification helpers.
-- Add replay protection, tests, and provider-neutral documentation.
+- Add private object access, presigned URL strategy, and content sniffing hooks.
+- Add storage failure tests and documentation.
 - Update `PROJECT_STATUS.md` after the task is completed.
 
 Expected files likely to change:
 
-- `app/api/dependencies`
-- `app/models`
-- `app/services`
-- `app/schemas`
-- `alembic/versions`
+- `app/services/storage_service.py`
+- `app/api/routes/files.py`
+- `app/schemas/file.py`
+- `.env.example`
 - `README.md`
 - `PROJECT_STATUS.md`
 - `tests`
