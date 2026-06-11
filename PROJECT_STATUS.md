@@ -137,6 +137,8 @@ Production-readiness summary:
   Redis outage behavior, cache-miss consistency, and OpenAPI contract checks.
 - Dependabot automation for weekly uv, GitHub Actions, and Docker image update
   pull requests with documented review cadence in `README.md`.
+- Local developer experience improvements with development-only seed data,
+  `make bootstrap`, `make smoke`, `make validate`, and troubleshooting docs.
 - Local observability stack with Promtail, Loki, and Grafana for Docker log
   collection and inspection.
 - Prometheus-compatible `/metrics` endpoint, request metrics collection,
@@ -181,12 +183,6 @@ Production-readiness summary:
       behavior.
     - Missing coverage includes lightweight load/performance scenarios and
       documented throughput/latency baselines.
-
-2. P2 - Local developer experience can be improved further.
-    - Makefile, Docker Compose, uv, README, and tests are in place.
-    - Potential improvements include seed data, smoke-test commands, one-command
-      full validation, local production-mode checks, generated API client
-      examples, and clearer troubleshooting docs.
 
 Items requiring verification before being treated as implemented:
 
@@ -271,20 +267,20 @@ Implementation should happen in a separate future branch, not on `main`.
 Recommended next branch:
 
 ```text
-feature/local-developer-experience
+feature/load-performance-baseline
 ```
 
 Recommended scope:
 
-- Add seed data, smoke-test commands, one-command full validation, and clearer
-  local troubleshooting docs.
+- Add a lightweight load/performance smoke scenario, local run instructions,
+  and a documented baseline result format.
 - Update `PROJECT_STATUS.md` after the task is completed.
 
 Expected files likely to change:
 
+- `perf/` or `scripts/`
 - `Makefile`
 - `README.md`
-- `scripts/` or `tests/`
 - `PROJECT_STATUS.md`
 
 Expected validation:
