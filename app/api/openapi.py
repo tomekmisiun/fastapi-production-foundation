@@ -30,6 +30,10 @@ OPENAPI_TAGS = [
         "name": "metrics",
         "description": "Prometheus-compatible application metrics.",
     },
+    {
+        "name": "webhooks",
+        "description": "Signed inbound webhook processing with replay protection.",
+    },
 ]
 
 ERROR_RESPONSES = {

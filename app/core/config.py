@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     sentry_traces_sample_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     sentry_send_default_pii: bool = False
     sentry_release: str = ""
+    webhook_signature_secret: str = ""
+    idempotency_ttl_seconds: int = Field(default=86400, gt=0)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
