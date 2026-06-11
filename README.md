@@ -192,6 +192,7 @@ management expectations:
 
 ```text
 docs/production-deployment.md
+docs/secret-management.md
 ```
 
 ## Migrations
