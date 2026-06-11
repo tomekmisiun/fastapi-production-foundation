@@ -28,6 +28,16 @@ Override defaults when needed:
 API_BASE_URL=http://api:8000 LOAD_REQUESTS=100 LOAD_CONCURRENCY=10 make load-smoke
 ```
 
+Include database and Redis dependency latency by targeting readiness:
+
+```bash
+docker compose run --rm api python perf/load_baseline.py \
+  --base-url http://api:8000 \
+  --path /health/ready \
+  --requests 50 \
+  --concurrency 5
+```
+
 ## Result format
 
 The script prints JSON with:
