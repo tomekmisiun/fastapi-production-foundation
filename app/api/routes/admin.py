@@ -47,6 +47,7 @@ def list_audit_logs(
 
     return get_audit_logs(
         db,
+        tenant_id=current_user.tenant_id,
         skip=skip,
         limit=size,
         action=action,

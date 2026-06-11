@@ -7,6 +7,7 @@ from app.core.cache import delete_cache_pattern, get_json_cache, set_json_cache
 from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import UserAdminUpdate, UserRead, UserSelfUpdate
+from app.services.tenant_service import build_tenant_cache_prefix
 
 
 USERS_LIST_CACHE_PREFIX = "users:list:v1"
@@ -14,6 +15,7 @@ USERS_LIST_CACHE_PREFIX = "users:list:v1"
 
 def get_users(
     db: Session,
+    tenant_id: int,
     skip: int,
     limit: int,
     sort_by: str = "id",
@@ -23,6 +25,7 @@ def get_users(
     search=None,
 ):
     cache_key = build_users_list_cache_key(
+        tenant_id=tenant_id,
         skip=skip,
         limit=limit,
         sort_by=sort_by,
@@ -45,7 +48,7 @@ def get_users(
         "is_active": User.is_active,
     }
 
-    query = db.query(User)
+    query = db.query(User).filter(User.tenant_id == tenant_id)
 
     if role is not None:
         query = query.filter(User.role == role)
@@ -54,7 +57,7 @@ def get_users(
         query = query.filter(User.is_active.is_(True))
     else:
         query = query.filter(User.is_active == is_active)
-    
+
     sort_column = allowed_sort_fields.get(sort_by, User.id)
 
     if sort_order == "desc":
@@ -88,6 +91,7 @@ def get_users(
 
 def build_users_list_cache_key(
     *,
+    tenant_id: int,
     skip: int,
     limit: int,
     sort_by: str,
@@ -109,15 +113,21 @@ def build_users_list_cache_key(
         json.dumps(cache_params, sort_keys=True).encode("utf-8")
     ).hexdigest()
 
-    return f"{USERS_LIST_CACHE_PREFIX}:{cache_hash}"
+    return f"{build_tenant_cache_prefix(tenant_id)}:{USERS_LIST_CACHE_PREFIX}:{cache_hash}"
 
 
-def invalidate_users_list_cache() -> None:
-    delete_cache_pattern(f"{USERS_LIST_CACHE_PREFIX}:*")
+def invalidate_users_list_cache(tenant_id: int) -> None:
+    delete_cache_pattern(
+        f"{build_tenant_cache_prefix(tenant_id)}:{USERS_LIST_CACHE_PREFIX}:*"
+    )
 
 
-def get_user_by_id(db: Session, user_id: int) -> User | None:
-    return db.query(User).filter(User.id == user_id).first()
+def get_user_by_id(db: Session, user_id: int, tenant_id: int) -> User | None:
+    return (
+        db.query(User)
+        .filter(User.id == user_id, User.tenant_id == tenant_id)
+        .first()
+    )
 
 
 def update_user(
@@ -132,19 +142,20 @@ def update_user(
 
     db.commit()
     db.refresh(user)
-    invalidate_users_list_cache()
+    invalidate_users_list_cache(user.tenant_id)
 
     return user
 
 
 def delete_user(db: Session, user: User) -> None:
+    tenant_id = user.tenant_id
     db.delete(user)
     db.commit()
-    invalidate_users_list_cache()
+    invalidate_users_list_cache(tenant_id)
 
 
-def deactivate_user(db: Session, user_id: int) -> User | None:
-    user = get_user_by_id(db, user_id)
+def deactivate_user(db: Session, user_id: int, tenant_id: int) -> User | None:
+    user = get_user_by_id(db, user_id, tenant_id)
 
     if not user:
         return None
@@ -152,13 +163,13 @@ def deactivate_user(db: Session, user_id: int) -> User | None:
     user.is_active = False
     db.commit()
     db.refresh(user)
-    invalidate_users_list_cache()
+    invalidate_users_list_cache(tenant_id)
 
     return user
 
 
-def activate_user(db: Session, user_id: int) -> User | None:
-    user = get_user_by_id(db, user_id)
+def activate_user(db: Session, user_id: int, tenant_id: int) -> User | None:
+    user = get_user_by_id(db, user_id, tenant_id)
 
     if not user:
         return None
@@ -166,6 +177,6 @@ def activate_user(db: Session, user_id: int) -> User | None:
     user.is_active = True
     db.commit()
     db.refresh(user)
-    invalidate_users_list_cache()
+    invalidate_users_list_cache(tenant_id)
 
     return user

@@ -29,8 +29,12 @@ PASSWORD_RESET_RESPONSE_MESSAGE = (
 INVALID_RESET_TOKEN_MESSAGE = "Invalid or expired password reset token"
 
 
-def request_password_reset(db: Session, reset_request: PasswordResetRequest) -> str:
-    user = get_user_by_email(db, str(reset_request.email))
+def request_password_reset(
+    db: Session,
+    reset_request: PasswordResetRequest,
+    tenant_id: int,
+) -> str:
+    user = get_user_by_email(db, str(reset_request.email), tenant_id)
 
     if user is None or not user.is_active:
         logger.info("password_reset_request_ignored")
@@ -39,6 +43,7 @@ def request_password_reset(db: Session, reset_request: PasswordResetRequest) -> 
     job = enqueue_password_reset_email_job(user.id)
     create_audit_log(
         db=db,
+        tenant_id=user.tenant_id,
         admin_id=None,
         action=AuditAction.PASSWORD_RESET_REQUESTED,
         target_user_id=user.id,
@@ -159,6 +164,7 @@ def confirm_password_reset(db: Session, reset_confirm: PasswordResetConfirm) -> 
     db.commit()
     create_audit_log(
         db=db,
+        tenant_id=user.tenant_id,
         admin_id=None,
         action=AuditAction.PASSWORD_RESET_CONFIRMED,
         target_user_id=user.id,

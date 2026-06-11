@@ -40,13 +40,18 @@ def verify_password_reset_token(token: str, token_hash: str) -> bool:
     return hmac.compare_digest(hash_password_reset_token(token), token_hash)
 
 
-def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: str,
+    tenant_id: int,
+    expires_delta: timedelta | None = None,
+) -> str:
     expire = datetime.now(timezone.utc) + (
         expires_delta if expires_delta else timedelta(minutes=30)
     )
 
     payload: dict[str, Any] = {
         "sub": subject,
+        "tenant_id": tenant_id,
         "exp": expire,
         "type": "access",
         "jti": str(uuid4()),
@@ -55,13 +60,18 @@ def create_access_token(subject: str, expires_delta: timedelta | None = None) ->
     return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
 
 
-def create_refresh_token(subject: str, expires_delta: timedelta | None = None) -> str:
+def create_refresh_token(
+    subject: str,
+    tenant_id: int,
+    expires_delta: timedelta | None = None,
+) -> str:
     expire = datetime.now(timezone.utc) + (
         expires_delta if expires_delta else timedelta(days=7)
     )
 
     payload: dict[str, Any] = {
         "sub": subject,
+        "tenant_id": tenant_id,
         "exp": expire,
         "type": "refresh",
         "jti": str(uuid4()),

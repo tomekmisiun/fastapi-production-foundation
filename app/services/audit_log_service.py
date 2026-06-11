@@ -5,11 +5,13 @@ from app.models.audit_log import AuditAction, AuditLog
 
 def create_audit_log(
     db: Session,
+    tenant_id: int,
     admin_id: int | None,
     action: AuditAction,
     target_user_id: int | None = None,
 ) -> AuditLog:
     audit_log = AuditLog(
+        tenant_id=tenant_id,
         admin_id=admin_id,
         action=action.value,
         target_user_id=target_user_id,
@@ -24,13 +26,14 @@ def create_audit_log(
 
 def get_audit_logs(
     db: Session,
+    tenant_id: int,
     skip: int = 0,
     limit: int = 100,
     action: AuditAction | None = None,
     admin_id: int | None = None,
     target_user_id: int | None = None,
 ) -> list[AuditLog]:
-    query = db.query(AuditLog)
+    query = db.query(AuditLog).filter(AuditLog.tenant_id == tenant_id)
 
     if action is not None:
         query = query.filter(AuditLog.action == action.value)
