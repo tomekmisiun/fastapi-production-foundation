@@ -108,6 +108,9 @@ Production-readiness summary:
 - Request ID middleware that generates or preserves `X-Request-ID`, adds it to
   responses, keeps `X-Process-Time`, and logs request start/finish events.
 - Configured stdout logging with request context fields visible in Docker logs.
+- Structured logging foundation with env-driven `text`/`json` output, sensitive
+  field redaction, request/job correlation via `request_id` propagation into
+  worker jobs, and regression tests for formatters and redaction policy.
 - Local observability stack with Promtail, Loki, and Grafana for Docker log
   collection and inspection.
 - Prometheus-compatible `/metrics` endpoint, request metrics collection,
@@ -147,64 +150,58 @@ Production-readiness summary:
 
 ## 3. Main Production Gaps
 
-1. P1 - Logging is production-useful but not fully structured.
-    - Request logs include request context fields and go to stdout/stderr.
-    - Logs are not emitted as JSON, worker logs do not yet share a complete
-      request/job correlation model, and sensitive-field redaction policy needs
-      verification.
-
-2. P1 - API versioning is not implemented.
+1. P1 - API versioning is not implemented.
     - Routes are mounted directly at paths such as `/auth` and `/users`; there
       is no `/api/v1` namespace or versioning policy for future breaking
       changes.
 
-3. P1 - OpenAPI documentation quality needs improvement.
+2. P1 - OpenAPI documentation quality needs improvement.
     - FastAPI generates OpenAPI automatically, but endpoint summaries,
       descriptions, examples, error envelope documentation, auth docs, and
       tag-level structure are not yet production-template quality.
 
-4. P1 - RBAC and permissions are basic.
+3. P1 - RBAC and permissions are basic.
     - The template supports `admin` and `user`, but not a reusable permission
       model, scopes, policies, role hierarchy, or resource-level authorization
       patterns.
 
-5. P1 - Multi-tenancy readiness is not implemented.
+4. P1 - Multi-tenancy readiness is not implemented.
     - There is no tenant model, tenant-aware auth, tenant-scoped queries,
       tenant-aware audit logs, tenant-safe cache keys, or tenant isolation
       strategy.
 
-6. P1 - Idempotency and webhook security foundation are missing.
+5. P1 - Idempotency and webhook security foundation are missing.
     - The template does not yet provide idempotency keys, webhook signature
       verification, replay protection, event persistence, or generic webhook
       testing helpers.
 
-7. P1 - File upload/storage safety is partial.
+6. P1 - File upload/storage safety is partial.
     - Upload validation, metadata storage, S3-compatible abstraction, and local
       MinIO exist.
     - Missing pieces include presigned download/upload flows, private object
       access policy, object lifecycle rules, malware scanning, content sniffing,
       bucket bootstrap verification, and storage cleanup strategy.
 
-8. P1 - CI/CD quality is incomplete for a reusable production template.
+7. P1 - CI/CD quality is incomplete for a reusable production template.
     - CI runs Docker build, Ruff, Redis-backed tests, and pytest with database
       services.
     - Missing pieces include deployment pipeline, release artifacts, image
       tagging, vulnerability scanning, dependency review, coverage reporting,
       and optional pre-commit enforcement in CI.
 
-9. P1 - Test coverage gaps remain around operations and scale.
+8. P1 - Test coverage gaps remain around operations and scale.
     - Regression coverage is broad for current API behavior.
     - Missing coverage includes backup/restore rehearsal, deployment/migration
       failure scenarios, worker failure replay, object storage edge cases,
       OpenAPI contract checks, load/performance tests, and cache stampede or
       Redis outage behavior.
 
-10. P2 - Dependency/version management is documented but not automated.
+9. P2 - Dependency/version management is documented but not automated.
     - uv is configured and dependency policy is documented.
     - Automated dependency updates, vulnerability alerts, and dependency update
       cadence still require implementation or repository hosting setup.
 
-11. P2 - Local developer experience can be improved further.
+10. P2 - Local developer experience can be improved further.
     - Makefile, Docker Compose, uv, README, and tests are in place.
     - Potential improvements include seed data, smoke-test commands, one-command
       full validation, local production-mode checks, generated API client

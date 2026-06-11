@@ -49,7 +49,10 @@ class EmailService:
         body = render_password_reset_body(reset_url)
 
         self.provider.send_email(recipient, subject, body)
-        logger.info("password_reset_email_sent recipient=%s", recipient)
+        logger.info(
+            "password_reset_email_sent",
+            extra={"recipient": recipient},
+        )
 
 
 def get_email_service() -> EmailService:

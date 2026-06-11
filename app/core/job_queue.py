@@ -6,6 +6,7 @@ from redis import Redis
 
 from app.core.config import settings
 from app.core.redis import redis_client
+from app.core.request_context import get_request_id
 
 
 @dataclass(frozen=True)
@@ -14,16 +15,20 @@ class Job:
     type: str
     payload: dict
     attempts: int = 0
+    request_id: str | None = None
 
     def to_json(self) -> str:
-        return json.dumps(
-            {
-                "id": self.id,
-                "type": self.type,
-                "payload": self.payload,
-                "attempts": self.attempts,
-            }
-        )
+        data = {
+            "id": self.id,
+            "type": self.type,
+            "payload": self.payload,
+            "attempts": self.attempts,
+        }
+
+        if self.request_id is not None:
+            data["request_id"] = self.request_id
+
+        return json.dumps(data)
 
     @classmethod
     def from_json(cls, raw_job: str) -> "Job":
@@ -33,6 +38,7 @@ class Job:
             type=data["type"],
             payload=data["payload"],
             attempts=data.get("attempts", 0),
+            request_id=data.get("request_id"),
         )
 
     def with_next_attempt(self) -> "Job":
@@ -41,6 +47,7 @@ class Job:
             type=self.type,
             payload=self.payload,
             attempts=self.attempts + 1,
+            request_id=self.request_id,
         )
 
 
@@ -55,6 +62,7 @@ def enqueue_job(
         id=str(uuid4()),
         type=job_type,
         payload=payload,
+        request_id=get_request_id(),
     )
     redis.lpush(queue_name, job.to_json())
 
