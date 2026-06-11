@@ -3,13 +3,19 @@ from enum import Enum
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user, require_role
+from app.api.dependencies.auth import get_current_user, require_permission
+from app.core.permissions import Permission
 from app.api.openapi import ADMIN_ERROR_RESPONSES, PROTECTED_ERROR_RESPONSES
 from app.db.session import get_db
 from app.models.audit_log import AuditAction
 from app.models.user import User
 from app.schemas.user import UserAdminUpdate, UserRead, UserSelfUpdate
 from app.services.audit_log_service import create_audit_log
+from app.services.permission_service import (
+    can_read_user,
+    can_update_user,
+    user_has_permission,
+)
 from app.services.user_service import (
     activate_user,
     deactivate_user,
@@ -56,7 +62,7 @@ def list_users(
     is_active: bool | None = None,
     search: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_permission(Permission.USERS_LIST)),
 ):
     skip = (page - 1) * size
 
@@ -92,7 +98,7 @@ def get_user(
             detail="User not found",
         )
 
-    if current_user.role != "admin" and current_user.id != user_id:
+    if not can_read_user(current_user, user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions",
@@ -125,20 +131,20 @@ def patch_user(
             detail="User not found",
         )
 
-    if current_user.role != "admin" and current_user.id != user_id:
+    if not can_update_user(current_user, user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions",
         )
 
-    if current_user.role == "admin":
+    if user_has_permission(current_user, Permission.USERS_UPDATE):
         update_data = user_update
     else:
         update_data = UserSelfUpdate(**user_update.model_dump(exclude_unset=True))
 
     updated_user = update_user(db, user, update_data)
 
-    if current_user.role == "admin":
+    if user_has_permission(current_user, Permission.USERS_UPDATE):
         create_audit_log(
             db=db,
             admin_id=current_user.id,
@@ -158,7 +164,7 @@ def patch_user(
 def deactivate_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_permission(Permission.USERS_DEACTIVATE)),
 ):
     user = deactivate_user(db, user_id)
 
@@ -187,7 +193,7 @@ def deactivate_user_endpoint(
 def activate_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_permission(Permission.USERS_ACTIVATE)),
 ):
     user = activate_user(db, user_id)
 
@@ -216,7 +222,7 @@ def activate_user_endpoint(
 def remove_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_permission(Permission.USERS_DELETE)),
 ):
     user = get_user_by_id(db, user_id)
 

@@ -1,0 +1,36 @@
+from enum import StrEnum
+
+
+class Permission(StrEnum):
+    USERS_LIST = "users.list"
+    USERS_READ = "users.read"
+    USERS_READ_SELF = "users.read.self"
+    USERS_UPDATE = "users.update"
+    USERS_UPDATE_SELF = "users.update.self"
+    USERS_DELETE = "users.delete"
+    USERS_ACTIVATE = "users.activate"
+    USERS_DEACTIVATE = "users.deactivate"
+    ADMIN_ACCESS = "admin.access"
+    AUDIT_LOGS_LIST = "audit_logs.list"
+    FILES_UPLOAD = "files.upload"
+
+
+USER_PERMISSIONS = frozenset(
+    {
+        Permission.USERS_READ_SELF,
+        Permission.USERS_UPDATE_SELF,
+        Permission.FILES_UPLOAD,
+    }
+)
+
+ADMIN_PERMISSIONS = frozenset(Permission)
+
+ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
+    "user": USER_PERMISSIONS,
+    "admin": ADMIN_PERMISSIONS,
+}
+
+ROLE_HIERARCHY: dict[str, frozenset[str]] = {
+    "admin": frozenset({"admin", "user"}),
+    "user": frozenset({"user"}),
+}

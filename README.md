@@ -462,17 +462,21 @@ Supported roles:
 - `user`
 - `admin`
 
-Admin-only behavior:
+Authorization is permission-based. Roles map to permission policies in
+`app/core/permissions.py`, and routes use `require_permission(...)` or
+resource-level helpers from `app/services/permission_service.py`.
 
-- list users
-- activate users
-- deactivate users
-- delete users
-- view audit logs
-- update admin-managed user fields
+Examples:
 
-Regular users can read and update their own profile, but self-update does not
-allow changing admin-managed fields such as `is_active`.
+- `users.list`, `users.read`, `users.update`, `users.delete`
+- `users.read.self`, `users.update.self`
+- `users.activate`, `users.deactivate`
+- `admin.access`, `audit_logs.list`, `files.upload`
+
+`admin` inherits the `user` role hierarchy and receives the full permission
+set. Regular users can read and update only their own profile through self
+permissions, but self-update does not allow changing admin-managed fields such
+as `is_active`.
 
 ## Rate Limiting
 

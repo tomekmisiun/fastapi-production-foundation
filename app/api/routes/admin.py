@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import require_role
+from app.api.dependencies.auth import require_permission
+from app.core.permissions import Permission
 from app.api.openapi import ADMIN_ERROR_RESPONSES
 from app.db.session import get_db
 from app.models.audit_log import AuditAction
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
     responses=ADMIN_ERROR_RESPONSES,
 )
 def admin_panel(
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_permission(Permission.ADMIN_ACCESS)),
 ):
     return {
         "message": "Welcome admin",
@@ -40,7 +41,7 @@ def list_audit_logs(
     admin_id: int | None = Query(None, ge=1),
     target_user_id: int | None = Query(None, ge=1),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_permission(Permission.AUDIT_LOGS_LIST)),
 ):
     skip = (page - 1) * size
 
