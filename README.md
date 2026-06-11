@@ -140,6 +140,46 @@ The API image is built from `Dockerfile`, runs as a non-root `app` user, and
 uses `.dockerignore` to keep local secrets, VCS metadata, virtual environments,
 and cache files out of the build context.
 
+### Local developer workflow
+
+Bootstrap a fresh local environment:
+
+```bash
+make bootstrap
+```
+
+This starts Docker Compose, applies migrations, seeds development users, and
+runs HTTP smoke checks against the API.
+
+Seed development users only:
+
+```bash
+make seed
+```
+
+The seed command runs only when `ENVIRONMENT=development` and creates:
+
+- `admin@example.local` with role `admin`
+- `user@example.local` with role `user`
+
+Both accounts use the password `devpassword123`.
+
+Run smoke checks against a running API:
+
+```bash
+make smoke
+```
+
+Run the standard local validation workflow:
+
+```bash
+make validate
+```
+
+`make validate` runs Ruff and the full pytest suite in Docker.
+
+Common local issues are documented in `docs/troubleshooting.md`.
+
 ## Environment Variables
 
 See `.env.example` for application variables and
@@ -280,6 +320,15 @@ docs/database-backup-restore.md
 ```
 
 ## Tests
+
+Makefile shortcuts:
+
+```bash
+make validate
+make test
+make test-coverage
+make lint
+```
 
 Run the test suite:
 
