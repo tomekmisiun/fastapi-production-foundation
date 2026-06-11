@@ -17,6 +17,7 @@ class FakeStorageService:
         )
 
         uploaded_file = UploadedFile(
+            tenant_id=owner.tenant_id,
             owner_id=owner.id,
             object_key=f"uploads/{owner.id}/{file.filename}",
             filename=file.filename,

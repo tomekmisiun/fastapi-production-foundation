@@ -478,6 +478,17 @@ set. Regular users can read and update only their own profile through self
 permissions, but self-update does not allow changing admin-managed fields such
 as `is_active`.
 
+## Multi-Tenancy
+
+The template includes tenant-aware data isolation:
+
+- `tenants` table with a seeded `default` tenant for local development.
+- Users, audit logs, uploads, cache keys, and object storage keys are scoped by
+  `tenant_id`.
+- Auth endpoints resolve the tenant from `X-Tenant-Slug` (default: `default`).
+- JWT access and refresh tokens include `tenant_id` and are validated against
+  the user's tenant on every authenticated request.
+
 ## Rate Limiting
 
 `GET /health/limited` demonstrates Redis-backed IP rate limiting.

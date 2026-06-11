@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.uploaded_file import UploadedFile
 from app.models.user import User
+from app.services.tenant_service import build_tenant_object_key_prefix
 
 
 @dataclass(frozen=True)
@@ -56,7 +57,11 @@ class StorageService:
         body = read_upload_body(file)
         validate_file_size(len(body))
 
-        object_key = build_object_key(owner.id, file.filename or "upload")
+        object_key = build_object_key(
+            owner.tenant_id,
+            owner.id,
+            file.filename or "upload",
+        )
 
         self.provider.upload_file(
             object_key=object_key,
@@ -65,6 +70,7 @@ class StorageService:
         )
 
         uploaded_file = UploadedFile(
+            tenant_id=owner.tenant_id,
             owner_id=owner.id,
             object_key=object_key,
             filename=file.filename or "upload",
@@ -109,6 +115,7 @@ def read_upload_body(file: UploadFile) -> bytes:
     return file.file.read()
 
 
-def build_object_key(owner_id: int, filename: str) -> str:
+def build_object_key(tenant_id: int, owner_id: int, filename: str) -> str:
     safe_filename = filename.replace("/", "_").replace("\\", "_")
-    return f"uploads/{owner_id}/{uuid4().hex}-{safe_filename}"
+    tenant_prefix = build_tenant_object_key_prefix(tenant_id)
+    return f"{tenant_prefix}/uploads/{owner_id}/{uuid4().hex}-{safe_filename}"

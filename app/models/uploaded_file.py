@@ -9,6 +9,12 @@ class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("tenants.id"),
+        nullable=False,
+        index=True,
+    )
     owner_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),

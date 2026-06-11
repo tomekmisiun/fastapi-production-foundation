@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user, require_permission
-from app.core.permissions import Permission
 from app.api.openapi import ADMIN_ERROR_RESPONSES, PROTECTED_ERROR_RESPONSES
+from app.core.permissions import Permission
 from app.db.session import get_db
 from app.models.audit_log import AuditAction
 from app.models.user import User
@@ -68,6 +68,7 @@ def list_users(
 
     return get_users(
         db=db,
+        tenant_id=current_user.tenant_id,
         skip=skip,
         limit=size,
         sort_by=sort_by.value,
@@ -90,7 +91,7 @@ def get_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user = get_user_by_id(db, user_id)
+    user = get_user_by_id(db, user_id, current_user.tenant_id)
 
     if user is None:
         raise HTTPException(
@@ -98,7 +99,7 @@ def get_user(
             detail="User not found",
         )
 
-    if not can_read_user(current_user, user_id):
+    if not can_read_user(current_user, user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions",
@@ -123,7 +124,7 @@ def patch_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user = get_user_by_id(db, user_id)
+    user = get_user_by_id(db, user_id, current_user.tenant_id)
 
     if user is None:
         raise HTTPException(
@@ -131,7 +132,7 @@ def patch_user(
             detail="User not found",
         )
 
-    if not can_update_user(current_user, user_id):
+    if not can_update_user(current_user, user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions",
@@ -147,6 +148,7 @@ def patch_user(
     if user_has_permission(current_user, Permission.USERS_UPDATE):
         create_audit_log(
             db=db,
+            tenant_id=current_user.tenant_id,
             admin_id=current_user.id,
             action=AuditAction.USER_UPDATED,
             target_user_id=user_id,
@@ -166,7 +168,7 @@ def deactivate_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission(Permission.USERS_DEACTIVATE)),
 ):
-    user = deactivate_user(db, user_id)
+    user = deactivate_user(db, user_id, current_user.tenant_id)
 
     if user is None:
         raise HTTPException(
@@ -176,6 +178,7 @@ def deactivate_user_endpoint(
 
     create_audit_log(
         db=db,
+        tenant_id=current_user.tenant_id,
         admin_id=current_user.id,
         action=AuditAction.USER_DEACTIVATED,
         target_user_id=user_id,
@@ -195,7 +198,7 @@ def activate_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission(Permission.USERS_ACTIVATE)),
 ):
-    user = activate_user(db, user_id)
+    user = activate_user(db, user_id, current_user.tenant_id)
 
     if user is None:
         raise HTTPException(
@@ -205,6 +208,7 @@ def activate_user_endpoint(
 
     create_audit_log(
         db=db,
+        tenant_id=current_user.tenant_id,
         admin_id=current_user.id,
         action=AuditAction.USER_ACTIVATED,
         target_user_id=user_id,
@@ -224,7 +228,7 @@ def remove_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission(Permission.USERS_DELETE)),
 ):
-    user = get_user_by_id(db, user_id)
+    user = get_user_by_id(db, user_id, current_user.tenant_id)
 
     if user is None:
         raise HTTPException(
@@ -235,6 +239,7 @@ def remove_user(
     delete_user(db, user)
     create_audit_log(
         db=db,
+        tenant_id=current_user.tenant_id,
         admin_id=current_user.id,
         action=AuditAction.USER_DELETED,
         target_user_id=user_id,

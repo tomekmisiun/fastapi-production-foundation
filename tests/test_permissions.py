@@ -10,8 +10,8 @@ from app.services.permission_service import (
 )
 
 
-def make_user(user_id: int, role: str):
-    return SimpleNamespace(id=user_id, role=role)
+def make_user(user_id: int, role: str, tenant_id: int = 1):
+    return SimpleNamespace(id=user_id, role=role, tenant_id=tenant_id)
 
 
 def test_admin_role_has_full_permission_set():
@@ -49,21 +49,29 @@ def test_role_hierarchy_does_not_elevate_regular_users():
 def test_can_read_user_allows_self_read_for_regular_user():
     user = make_user(3, "user")
 
-    assert can_read_user(user, 3) is True
-    assert can_read_user(user, 4) is False
+    assert can_read_user(user, user) is True
+    assert can_read_user(user, make_user(4, "user")) is False
 
 
-def test_can_read_user_allows_admin_to_read_any_user():
+def test_can_read_user_allows_admin_to_read_any_user_in_same_tenant():
     admin = make_user(1, "admin")
+    target = make_user(99, "user", tenant_id=1)
 
-    assert can_read_user(admin, 99) is True
+    assert can_read_user(admin, target) is True
+
+
+def test_can_read_user_denies_cross_tenant_access():
+    admin = make_user(1, "admin", tenant_id=1)
+    target = make_user(99, "user", tenant_id=2)
+
+    assert can_read_user(admin, target) is False
 
 
 def test_can_update_user_allows_self_update_for_regular_user():
     user = make_user(3, "user")
 
-    assert can_update_user(user, 3) is True
-    assert can_update_user(user, 4) is False
+    assert can_update_user(user, user) is True
+    assert can_update_user(user, make_user(4, "user")) is False
 
 
 def test_user_has_permission_reflects_role_policy():

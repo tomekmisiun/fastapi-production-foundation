@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies.rate_limit import password_reset_rate_limit
 from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.tenant import get_request_tenant
 from app.api.openapi import AUTH_ERROR_RESPONSES, RATE_LIMITED_ERROR_RESPONSES
 from app.db.session import get_db
+from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.auth import (
     LogoutRequest,
@@ -41,8 +43,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(
     user_data: UserCreate,
     db: Session = Depends(get_db),
+    tenant: Tenant = Depends(get_request_tenant),
 ):
-    return create_user(db, user_data)
+    return create_user(db, user_data, tenant.id)
 
 
 @router.post(
@@ -58,8 +61,9 @@ def register(
 def login(
     login_data: UserLogin,
     db: Session = Depends(get_db),
+    tenant: Tenant = Depends(get_request_tenant),
 ):
-    access_token, refresh_token = login_user(db, login_data)
+    access_token, refresh_token = login_user(db, login_data, tenant.id)
 
     return Token(
         access_token=access_token,
@@ -122,10 +126,11 @@ async def request_reset_password(
     request: Request,
     reset_request: PasswordResetRequest,
     db: Session = Depends(get_db),
+    tenant: Tenant = Depends(get_request_tenant),
 ):
     request.scope["_json"] = {"email": str(reset_request.email)}
     password_reset_rate_limit(request)
-    message = request_password_reset(db, reset_request)
+    message = request_password_reset(db, reset_request, tenant.id)
 
     return MessageResponse(message=message)
 

@@ -15,12 +15,16 @@ from app.schemas.auth import UserCreate, UserLogin
 from app.services.user_service import invalidate_users_list_cache
 
 
-def get_user_by_email(db: Session, email: str) -> User | None:
-    return db.query(User).filter(User.email == email).first()
+def get_user_by_email(db: Session, email: str, tenant_id: int) -> User | None:
+    return (
+        db.query(User)
+        .filter(User.email == email, User.tenant_id == tenant_id)
+        .first()
+    )
 
 
-def create_user(db: Session, user_data: UserCreate) -> User:
-    existing_user = get_user_by_email(db, user_data.email)
+def create_user(db: Session, user_data: UserCreate, tenant_id: int) -> User:
+    existing_user = get_user_by_email(db, user_data.email, tenant_id)
 
     if existing_user:
         raise HTTPException(
@@ -33,18 +37,19 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     user = User(
         email=user_data.email,
         hashed_password=hashed_password,
+        tenant_id=tenant_id,
     )
 
     db.add(user)
     db.commit()
     db.refresh(user)
-    invalidate_users_list_cache()
+    invalidate_users_list_cache(tenant_id)
 
     return user
 
 
-def authenticate_user(db: Session, login_data: UserLogin) -> User:
-    user = get_user_by_email(db, login_data.email)
+def authenticate_user(db: Session, login_data: UserLogin, tenant_id: int) -> User:
+    user = get_user_by_email(db, login_data.email, tenant_id)
 
     if not user:
         raise HTTPException(
@@ -67,11 +72,17 @@ def authenticate_user(db: Session, login_data: UserLogin) -> User:
     return user
 
 
-def login_user(db: Session, login_data: UserLogin) -> tuple[str, str]:
-    user = authenticate_user(db, login_data)
+def login_user(db: Session, login_data: UserLogin, tenant_id: int) -> tuple[str, str]:
+    user = authenticate_user(db, login_data, tenant_id)
 
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
+    access_token = create_access_token(
+        subject=str(user.id),
+        tenant_id=user.tenant_id,
+    )
+    refresh_token = create_refresh_token(
+        subject=str(user.id),
+        tenant_id=user.tenant_id,
+    )
 
     return access_token, refresh_token
 
@@ -82,8 +93,14 @@ def rotate_refresh_token(db: Session, refresh_token: str) -> tuple[str, str]:
 
     revoke_refresh_token(payload["jti"], payload["exp"])
 
-    access_token = create_access_token(subject=str(user.id))
-    new_refresh_token = create_refresh_token(subject=str(user.id))
+    access_token = create_access_token(
+        subject=str(user.id),
+        tenant_id=user.tenant_id,
+    )
+    new_refresh_token = create_refresh_token(
+        subject=str(user.id),
+        tenant_id=user.tenant_id,
+    )
 
     return access_token, new_refresh_token
 
@@ -110,8 +127,9 @@ def _decode_refresh_token(refresh_token: str) -> dict:
 
     jti = payload.get("jti")
     expires_at = payload.get("exp")
+    tenant_id = payload.get("tenant_id")
 
-    if not jti or not expires_at:
+    if not jti or not expires_at or tenant_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
@@ -128,8 +146,9 @@ def _decode_refresh_token(refresh_token: str) -> dict:
 
 def _get_active_user_from_refresh_payload(db: Session, payload: dict) -> User:
     user_id = payload.get("sub")
+    tenant_id = payload.get("tenant_id")
 
-    if user_id is None:
+    if user_id is None or tenant_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
@@ -137,13 +156,18 @@ def _get_active_user_from_refresh_payload(db: Session, payload: dict) -> User:
 
     try:
         parsed_user_id = int(user_id)
+        parsed_tenant_id = int(tenant_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
 
-    user = db.query(User).filter(User.id == parsed_user_id).first()
+    user = (
+        db.query(User)
+        .filter(User.id == parsed_user_id, User.tenant_id == parsed_tenant_id)
+        .first()
+    )
 
     if user is None or not user.is_active:
         raise HTTPException(
