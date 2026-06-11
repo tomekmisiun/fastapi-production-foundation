@@ -75,3 +75,10 @@ load-smoke:
 		--base-url $(LOAD_API_BASE_URL) \
 		--requests $(LOAD_REQUESTS) \
 		--concurrency $(LOAD_CONCURRENCY)
+
+load-smoke-ready:
+	docker compose run --rm api python perf/load_baseline.py \
+		--base-url $(LOAD_API_BASE_URL) \
+		--path /health/ready \
+		--requests $(LOAD_REQUESTS) \
+		--concurrency $(LOAD_CONCURRENCY)
