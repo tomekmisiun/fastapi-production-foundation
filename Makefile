@@ -1,6 +1,10 @@
 install:
 	uv sync
 
+API_BASE_URL ?= http://localhost:8000
+DEV_ADMIN_EMAIL ?= admin@example.local
+DEV_PASSWORD ?= devpassword123
+
 BACKUP_DIR ?= backups
 BACKUP_FILE ?= $(BACKUP_DIR)/app_db.dump
 DB_NAME ?= app_db
@@ -49,3 +53,15 @@ db-restore-check:
 	docker compose exec -T $(DB_SERVICE) pg_restore -U $(DB_USER) -d $(RESTORE_CHECK_DB) < $(BACKUP_FILE)
 	docker compose exec -T $(DB_SERVICE) psql -U $(DB_USER) -d $(RESTORE_CHECK_DB) -c "SELECT 1;"
 	docker compose exec -T $(DB_SERVICE) dropdb -U $(DB_USER) --if-exists $(RESTORE_CHECK_DB)
+
+seed:
+	docker compose run --rm api python -m app.seed_dev_data
+
+smoke:
+	API_BASE_URL=$(API_BASE_URL) DEV_ADMIN_EMAIL=$(DEV_ADMIN_EMAIL) DEV_PASSWORD=$(DEV_PASSWORD) ./scripts/smoke_test.sh
+
+validate:
+	docker compose run --rm api ruff check .
+	docker compose run --rm api pytest -v
+
+bootstrap: docker-up migration-upgrade seed smoke
