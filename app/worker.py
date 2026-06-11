@@ -8,6 +8,7 @@ from app.core.job_queue import (
     move_job_to_failed_queue,
     requeue_job,
 )
+from app.core.log_helpers import job_log_extra
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
 from app.services.password_reset_service import (
@@ -33,7 +34,7 @@ def handle_job(job: Job) -> None:
 
         return
 
-    logger.warning("worker_unknown_job_type job_id=%s job_type=%s", job.id, job.type)
+    logger.warning("worker_unknown_job_type", extra=job_log_extra(job))
 
 
 def process_next_job() -> bool:
@@ -43,10 +44,8 @@ def process_next_job() -> bool:
         return False
 
     logger.info(
-        "worker_job_started job_id=%s job_type=%s attempts=%s",
-        job.id,
-        job.type,
-        job.attempts,
+        "worker_job_started",
+        extra={**job_log_extra(job), "attempts": job.attempts},
     )
 
     try:
@@ -55,23 +54,19 @@ def process_next_job() -> bool:
         if job.attempts < settings.worker_max_retries:
             retried_job = requeue_job(job)
             logger.exception(
-                "worker_job_requeued job_id=%s job_type=%s attempts=%s",
-                retried_job.id,
-                retried_job.type,
-                retried_job.attempts,
+                "worker_job_requeued",
+                extra={**job_log_extra(retried_job), "attempts": retried_job.attempts},
             )
             return True
 
         move_job_to_failed_queue(job)
         logger.exception(
-            "worker_job_failed job_id=%s job_type=%s attempts=%s",
-            job.id,
-            job.type,
-            job.attempts,
+            "worker_job_failed",
+            extra={**job_log_extra(job), "attempts": job.attempts},
         )
         return True
 
-    logger.info("worker_job_completed job_id=%s job_type=%s", job.id, job.type)
+    logger.info("worker_job_completed", extra=job_log_extra(job))
     return True
 
 

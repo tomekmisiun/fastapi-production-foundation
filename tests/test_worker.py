@@ -6,6 +6,7 @@ from app.core.job_queue import (
     move_job_to_failed_queue,
     requeue_failed_jobs,
 )
+from app.core.request_context import request_id_var
 from app.worker import process_next_job, run_scheduled_maintenance
 
 
@@ -37,6 +38,23 @@ class FakeRedis:
             return None
 
         return queue.pop()
+
+
+def test_enqueue_job_propagates_request_id_from_context():
+    redis = FakeRedis()
+    request_id_token = request_id_var.set("request-123")
+
+    try:
+        enqueued_job = enqueue_job(
+            "send_password_reset_email",
+            {"user_id": 123},
+            redis=redis,
+            queue_name="test_jobs",
+        )
+    finally:
+        request_id_var.reset(request_id_token)
+
+    assert enqueued_job.request_id == "request-123"
 
 
 def test_enqueue_and_dequeue_job_round_trip():

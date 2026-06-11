@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 ALLOWED_ENVIRONMENTS = {"development", "test", "staging", "production"}
+ALLOWED_LOG_FORMATS = {"text", "json"}
 WEAK_SECRET_KEYS = {"change-me", "changeme", "secret", "test", "password"}
 LOCAL_DATABASE_URL = "postgresql://app_user:app_password@db:5432/app_db"
 LOCAL_PASSWORD_RESET_URLS = {
@@ -30,6 +31,7 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_db: int = 0
     log_level: str = "INFO"
+    log_format: str = "text"
     rate_limit_default_limit: int = Field(default=5, gt=0)
     rate_limit_default_window_seconds: int = Field(default=60, gt=0)
     password_reset_rate_limit_limit: int = Field(default=3, gt=0)
@@ -148,6 +150,17 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_log_level(cls, value: str) -> str:
         return value.upper()
+
+    @field_validator("log_format")
+    @classmethod
+    def normalize_log_format(cls, value: str) -> str:
+        normalized_log_format = value.lower()
+
+        if normalized_log_format not in ALLOWED_LOG_FORMATS:
+            allowed_values = ", ".join(sorted(ALLOWED_LOG_FORMATS))
+            raise ValueError(f"log_format must be one of: {allowed_values}")
+
+        return normalized_log_format
 
 
 @lru_cache
