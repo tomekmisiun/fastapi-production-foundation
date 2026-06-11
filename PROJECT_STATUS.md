@@ -135,6 +135,8 @@ Production-readiness summary:
 - Operations and scale regression coverage for migration downgrade/upgrade
   rehearsal, logical backup/restore rehearsal, worker failed-job CLI replay,
   Redis outage behavior, cache-miss consistency, and OpenAPI contract checks.
+- Dependabot automation for weekly uv, GitHub Actions, and Docker image update
+  pull requests with documented review cadence in `README.md`.
 - Local observability stack with Promtail, Loki, and Grafana for Docker log
   collection and inspection.
 - Prometheus-compatible `/metrics` endpoint, request metrics collection,
@@ -180,12 +182,7 @@ Production-readiness summary:
     - Missing coverage includes lightweight load/performance scenarios and
       documented throughput/latency baselines.
 
-2. P2 - Dependency/version management is documented but not automated.
-    - uv is configured and dependency policy is documented.
-    - Automated dependency updates, vulnerability alerts, and dependency update
-      cadence still require implementation or repository hosting setup.
-
-3. P2 - Local developer experience can be improved further.
+2. P2 - Local developer experience can be improved further.
     - Makefile, Docker Compose, uv, README, and tests are in place.
     - Potential improvements include seed data, smoke-test commands, one-command
       full validation, local production-mode checks, generated API client
@@ -274,19 +271,20 @@ Implementation should happen in a separate future branch, not on `main`.
 Recommended next branch:
 
 ```text
-feature/dependency-automation
+feature/local-developer-experience
 ```
 
 Recommended scope:
 
-- Add Dependabot or Renovate configuration for Python and GitHub Actions
-  dependencies, plus documented update/review cadence.
+- Add seed data, smoke-test commands, one-command full validation, and clearer
+  local troubleshooting docs.
 - Update `PROJECT_STATUS.md` after the task is completed.
 
 Expected files likely to change:
 
-- `.github/dependabot.yml` or `renovate.json`
+- `Makefile`
 - `README.md`
+- `scripts/` or `tests/`
 - `PROJECT_STATUS.md`
 
 Expected validation:

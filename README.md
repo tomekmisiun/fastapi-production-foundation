@@ -92,6 +92,27 @@ When adding or updating dependencies:
 
 Commit `pyproject.toml` and `uv.lock` together after dependency changes.
 
+### Automated updates
+
+Dependabot opens weekly pull requests for:
+
+- Python dependencies in `pyproject.toml` and `uv.lock`
+- GitHub Actions workflow pins
+- Docker base images in `Dockerfile`
+
+Recommended review cadence:
+
+1. Let Dependabot group minor and patch Python updates into a small number of
+   weekly PRs.
+2. Wait for CI and the dependency review workflow to pass on each PR.
+3. Merge patch and minor updates regularly to keep security fixes current.
+4. Review major Python, Docker, and Actions updates manually because they may
+   require code or infrastructure changes.
+
+Dependabot ignores automatic major-version bumps for Python packages. Open or
+approve major upgrades intentionally after reading release notes and running the
+full validation commands above.
+
 ## Docker Setup
 
 Start the full local stack:
@@ -295,6 +316,7 @@ GitHub Actions workflows:
 - `ci.yml` — pre-commit, Docker-based pytest with coverage artifact upload,
   Docker image build, and Trivy vulnerability scanning.
 - `dependency-review.yml` — pull request dependency vulnerability review.
+- `dependabot.yml` — weekly version update PRs for uv, GitHub Actions, and Docker.
 - `release.yml` — publishes tagged API images to GHCR on `v*` tags.
 - `deploy.yml` — manual deployment placeholder for staging/production promotion.
 
