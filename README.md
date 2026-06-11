@@ -568,6 +568,27 @@ Example PromQL query:
 sum by (method, path, status_code) (rate(http_requests_total[5m]))
 ```
 
+## Production Deployment
+
+This repository is a reusable backend template, not a provider-specific
+deployment package. The production operating model is documented in
+`docs/production-deployment.md`.
+
+The production guide covers:
+
+- staging and production environment expectations
+- secret management expectations
+- deployment and release checklist
+- migration rollout strategy
+- rollback strategy
+- PostgreSQL backup and restore expectations
+- health checks and post-deploy smoke checks
+
 ## Known Production Gaps
 
-- Schedule automation for expired password reset token cleanup.
+- Production migration and rollback strategy needs deeper implementation
+  support beyond the current deployment guide.
+- Database backup/restore verification is not automated.
+- Alerting, error tracking, and tracing are not implemented.
+- Schedule automation for expired password reset token cleanup is not
+  implemented.
