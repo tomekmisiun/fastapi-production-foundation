@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.job_queue import enqueue_job
 from app.core.config import settings
+from app.core.redis import redis_client
 from app.core.security import (
     generate_password_reset_token,
     hash_password,
@@ -23,6 +24,7 @@ from app.services.email_service import EmailDeliveryError, get_email_service
 logger = logging.getLogger("app.password_reset")
 
 SEND_PASSWORD_RESET_EMAIL_JOB = "send_password_reset_email"
+PASSWORD_RESET_JOB_COMPLETED_PREFIX = "password_reset_job_completed:"
 PASSWORD_RESET_RESPONSE_MESSAGE = (
     "If an account exists for this email, password reset instructions were sent."
 )
@@ -64,7 +66,36 @@ def enqueue_password_reset_email_job(user_id: int):
     )
 
 
-def create_password_reset_token_and_send_email(db: Session, user_id: int) -> None:
+def password_reset_job_completed_key(job_id: str) -> str:
+    return f"{PASSWORD_RESET_JOB_COMPLETED_PREFIX}{job_id}"
+
+
+def is_password_reset_job_completed(job_id: str) -> bool:
+    return redis_client.exists(password_reset_job_completed_key(job_id)) == 1
+
+
+def mark_password_reset_job_completed(job_id: str) -> None:
+    redis_client.set(
+        password_reset_job_completed_key(job_id),
+        "1",
+        ex=settings.password_reset_job_completion_ttl_seconds,
+    )
+
+
+def create_password_reset_token_and_send_email(
+    db: Session,
+    user_id: int,
+    *,
+    job_id: str | None = None,
+) -> None:
+    if job_id is not None and is_password_reset_job_completed(job_id):
+        logger.info(
+            "password_reset_email_job_skipped reason=already_completed job_id=%s user_id=%s",
+            job_id,
+            user_id,
+        )
+        return
+
     user = db.query(User).filter(User.id == user_id).first()
 
     if user is None or not user.is_active:
@@ -108,6 +139,9 @@ def create_password_reset_token_and_send_email(db: Session, user_id: int) -> Non
         raise
 
     db.commit()
+    if job_id is not None:
+        mark_password_reset_job_completed(job_id)
+
     logger.info(
         "password_reset_email_job_completed user_id=%s token_id=%s",
         user.id,
