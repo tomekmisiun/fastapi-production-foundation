@@ -43,6 +43,18 @@ def test_legacy_routes_remain_available_for_backward_compatibility(client):
         )
 
 
+def test_openapi_marks_legacy_routes_as_deprecated(client):
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+
+    paths = response.json()["paths"]
+
+    assert paths["/auth/login"]["post"]["deprecated"] is True
+    assert paths["/users/"]["get"]["deprecated"] is True
+    assert paths[f"{API_V1_PREFIX}/auth/login"]["post"].get("deprecated") is not True
+
+
 def test_openapi_documents_api_v1_paths(client):
     response = client.get("/openapi.json")
 
