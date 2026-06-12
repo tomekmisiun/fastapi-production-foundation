@@ -396,11 +396,12 @@ make db-restore-check-dry-run
 The default dump path is `backups/app_db.dump`. Database dumps are ignored by
 git and must not be committed.
 
-Automation scripts, provider examples, and the manual backup rehearsal workflow
-are documented in:
+Automation scripts, provider examples, scheduled backup workflow guidance, and
+the PITR checklist are documented in:
 
 ```text
 docs/backup-restore-automation.md
+docs/pitr-and-scheduled-backups.md
 ```
 
 Production backup and restore expectations are documented in:
@@ -1021,7 +1022,7 @@ still decide and wire up:
 - tracing stack preference (Sentry, OpenTelemetry, or both)
 - GitHub Environment secrets for deploy workflows
 
-Template hardening work tracked in `PROJECT_STATUS.md` includes scheduled
-backup docs and related docs/tests.
+Template hardening work tracked in `PROJECT_STATUS.md` includes load threshold
+CI smoke and related docs/tests.
 
 See `docs/template-onboarding.md` for the full clone → local → staging path.
