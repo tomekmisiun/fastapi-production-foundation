@@ -1,8 +1,15 @@
 # Starter Backend Template
 
-FastAPI backend template for building production-oriented API services with
-authentication, user management, audit logging, PostgreSQL, Redis, Docker, and
-pytest.
+FastAPI backend template for building **production-oriented API foundations**
+with authentication, user management, audit logging, PostgreSQL, Redis, Docker,
+and pytest.
+
+This repository is a **production-ready foundation**, not a finished SaaS
+platform. It gives you auth, workers, storage hooks, CI, and deployment
+patterns; you still choose hosting, secrets, backups, and product-specific
+policies.
+
+**New project?** Start with `docs/template-onboarding.md`.
 
 ## Tech Stack
 
@@ -969,8 +976,21 @@ The production guide covers:
 
 ## Known Production Gaps
 
-- Production deployment automation still needs a project-specific deployment
-  backend configured through GitHub environment secrets.
-- Worker reliability, tenant isolation, webhook and idempotency hardening, file
-  upload production safety, backup automation, and load/concurrency testing
-  remain open roadmap items.
+The template ships implementation patterns and runbooks, but **not** a fully
+configured production environment. Before launch, each downstream project must
+still decide and wire up:
+
+- production hosting target and runtime (Kubernetes, PaaS, VM, etc.)
+- secret manager and rotation policy
+- managed PostgreSQL, Redis, and object storage
+- backup provider, RPO/RTO, and PITR policy (logical backup scripts exist;
+  PITR is provider-specific)
+- tracing stack preference (Sentry, OpenTelemetry, or both)
+- GitHub Environment secrets for deploy workflows
+
+Template hardening work tracked in `PROJECT_STATUS.md` (audit remediation)
+includes auth endpoint rate limits, worker idempotency, staging config parity,
+platform vs tenant admin boundaries, registration policy gates, access-token
+invalidation strategy, and related docs/tests.
+
+See `docs/template-onboarding.md` for the full clone → local → staging path.
