@@ -208,6 +208,10 @@ Production-readiness summary:
   requests, inactive-tenant rejection, admin tenant lifecycle endpoints,
   tenant-management permissions, cross-tenant denial regression tests, and
   `docs/tenant-isolation.md`.
+- Webhook and idempotency hardening with timestamped HMAC verification, replay
+  windows, Redis-backed in-flight idempotency locking, concurrent duplicate
+  fallback handling, production webhook secret validation, and
+  `docs/webhook-idempotency.md`.
 - AI rules refactor with separated rules for repository, architecture, API,
   backend, database, security, testing, Docker, documentation, and git workflow.
 
@@ -216,10 +220,6 @@ Production-readiness summary:
 The project should still be treated as a production-ready template foundation,
 not a finished production platform. The following gaps are template-wide enough
 to track before calling the repository complete for high-scale reuse.
-
-- P1: Webhook and idempotency hardening.
-  Add timestamped signatures, replay windows, concurrent duplicate handling,
-  stricter production secret validation, and clearer provider-specific patterns.
 
 - P1: File upload production safety.
   Add streaming-safe upload handling, actual object verification after presigned
@@ -254,7 +254,6 @@ mark them as completed until the implementation and regression coverage are on
 
 | Priority | Item | Goal | Recommended branch |
 |----------|------|------|--------------------|
-| P1 | Webhook and idempotency hardening | Improve replay protection, concurrent duplicate handling, timestamp validation, and secret enforcement. | `feature/webhook-idempotency-hardening` |
 | P1 | File upload production hardening | Add streaming-safe upload behavior, actual object verification, and concrete scanner integration boundaries. | `feature/file-upload-production-hardening` |
 | P2 | Backup/restore automation | Add provider-ready backup automation examples and stronger restore rehearsal workflows. | `feature/backup-restore-automation` |
 | P2 | Load and concurrency testing | Add repeatable performance thresholds and concurrency tests for critical infrastructure paths. | `feature/load-concurrency-testing` |
@@ -266,19 +265,20 @@ Implementation should happen in a separate future branch, not on `main`.
 Recommended next branch:
 
 ```text
-feature/webhook-idempotency-hardening
+feature/file-upload-production-hardening
 ```
 
 Recommended scope:
 
-- Add timestamped webhook signatures and replay windows.
-- Harden concurrent duplicate handling and production secret validation.
-- Add clearer provider-specific webhook patterns and regression coverage.
+- Add streaming-safe upload handling and actual object verification after
+  presigned uploads.
+- Add concrete malware scanner integration boundaries and stronger metadata
+  validation.
 
 Expected validation:
 
 - `make validate`
-- Webhook and idempotency tests for changed paths
+- File upload tests for changed paths
 
 ## 6. Rules For Updating This File
 
