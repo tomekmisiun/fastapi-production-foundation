@@ -2,6 +2,7 @@ import hashlib
 
 from fastapi import HTTPException, Request
 
+from app.core.client_ip import get_client_ip
 from app.core.config import settings
 from app.core.redis import redis_client
 
@@ -27,7 +28,7 @@ def rate_limit(
             if window_seconds is not None
             else settings.rate_limit_default_window_seconds
         )
-        client_ip = request.client.host
+        client_ip = get_client_ip(request)
         key = f"{key_prefix}:{client_ip}"
 
         current_count = redis_client.incr(key)
@@ -61,7 +62,7 @@ def auth_register_rate_limit():
 
 
 def password_reset_rate_limit(request: Request):
-    client_ip = request.client.host
+    client_ip = get_client_ip(request)
     body = request.scope.get("_json")
 
     if isinstance(body, dict):
