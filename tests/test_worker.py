@@ -7,7 +7,7 @@ from app.core.job_queue import (
     requeue_failed_jobs,
 )
 from app.core.request_context import request_id_var
-from app.worker import process_next_job, run_scheduled_maintenance
+from app.worker import UnknownJobTypeError, handle_job, process_next_job, run_scheduled_maintenance
 from tests.test_job_queue import FakeRedis
 
 
@@ -124,6 +124,57 @@ def test_requeue_failed_jobs_moves_jobs_back_to_main_queue():
     assert dequeued_job is not None
     assert dequeued_job.id == job.id
     assert dequeued_job.payload == job.payload
+
+
+def test_handle_job_raises_for_unknown_job_type():
+    job = Job(
+        id="job-id",
+        type="unknown_job_type",
+        payload={"foo": "bar"},
+        attempts=0,
+    )
+
+    try:
+        handle_job(job)
+    except UnknownJobTypeError as exc:
+        assert exc.job_type == "unknown_job_type"
+    else:
+        raise AssertionError("expected UnknownJobTypeError")
+
+
+def test_process_next_job_moves_unknown_job_type_to_failed_queue(monkeypatch):
+    job = Job(
+        id="job-id",
+        type="unknown_job_type",
+        payload={"foo": "bar"},
+        attempts=0,
+    )
+    acked_jobs = []
+    failed_jobs = []
+    retried_jobs = []
+
+    monkeypatch.setattr("app.worker.reclaim_stale_processing_jobs", lambda: 0)
+    monkeypatch.setattr("app.worker.promote_delayed_jobs", lambda: 0)
+    monkeypatch.setattr("app.worker.dequeue_job", lambda: job)
+    monkeypatch.setattr(
+        "app.worker.schedule_retry",
+        lambda failed_job, error: retried_jobs.append(failed_job),
+    )
+    monkeypatch.setattr(
+        "app.worker.move_job_to_failed_queue",
+        lambda failed_job, error=None: failed_jobs.append(failed_job) or failed_job,
+    )
+    monkeypatch.setattr(
+        "app.worker.ack_job",
+        lambda queued_job: acked_jobs.append(queued_job),
+    )
+
+    processed = process_next_job()
+
+    assert processed is True
+    assert failed_jobs == [job]
+    assert retried_jobs == []
+    assert acked_jobs == []
 
 
 def test_process_next_job_schedules_retry_with_backoff(monkeypatch):
