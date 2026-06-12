@@ -137,7 +137,7 @@ patterns, not your provider accounts.
 | Reverse proxy / runtime examples | `docs/production-runtime-examples.md` |
 | Secrets | `docs/secret-management.md` |
 | Migrations / rollback | `docs/migration-rollback.md` |
-| Backups | `docs/backup-restore-automation.md`, `docs/database-backup-restore.md` |
+| Backups | `docs/backup-restore-automation.md`, `docs/database-backup-restore.md`, `docs/pitr-and-scheduled-backups.md` |
 | Tenant isolation | `docs/tenant-isolation.md` |
 | Observability | `docs/observability-production.md` |
 | Load / concurrency | `docs/load-concurrency-testing.md` |
