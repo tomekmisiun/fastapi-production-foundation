@@ -14,7 +14,7 @@ foundation using FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Docker
 Compose, pytest, Ruff, uv, and GitHub Actions.
 
 Current branch for active feature work:
-`feature/load-concurrency-testing`.
+`docs/status-sync-and-onboarding` (audit remediation).
 
 Current architecture:
 
@@ -43,10 +43,10 @@ Production-readiness summary:
   users/admin flows, audit logs, rate limiting, caching, worker jobs, password
   reset, file uploads, health checks, metrics, logs, CI, and migration-aware
   tests.
-- The project is a strong universal FastAPI backend template foundation. The
-  tracked template-wide production roadmap is complete; remaining work is
-  project-specific verification and downstream deployment choices rather than
-  missing template features.
+- The project is a **production-ready foundation** for new APIs, not a
+  finished multi-tenant SaaS platform. Core patterns are implemented and tested;
+  product-specific infra choices and several security/policy gaps listed below
+  remain before real production traffic.
 - Anything not listed in "Completed Features" should be treated as not
   implemented unless a new roadmap item is added explicitly.
 
@@ -218,52 +218,71 @@ Production-readiness summary:
 - File upload production hardening with streaming-safe multipart reads, stored
   object verification after presigned uploads, metadata validation, HTTP
   malware scanner integration boundaries, and `docs/file-upload-production.md`.
-- Backup and restore automation with provider-neutral backup/restore scripts,
-  core-table restore verification, Makefile dry-run targets, CI backup
-  rehearsal, manual GitHub Actions workflow, and
-  `docs/backup-restore-automation.md`.
 - Load and concurrency testing with repeatable threshold profiles in
   `perf/profiles.json`, threshold-enforced load targets, concurrency regression
   coverage for idempotency, workers, auth/session rotation, Redis, storage, and
   slow dependency paths, atomic refresh-token revocation under concurrent reuse,
   manual GitHub Actions load-threshold workflow, and
   `docs/load-concurrency-testing.md`.
+- Template onboarding guide in `docs/template-onboarding.md`.
 - AI rules refactor with separated rules for repository, architecture, API,
   backend, database, security, testing, Docker, documentation, and git workflow.
 
 ## 3. Main Production Gaps
 
-The project should still be treated as a production-ready template foundation,
-not a finished production platform. The tracked template-wide roadmap is
-complete. Remaining gaps are project-specific verification items rather than
-missing template features.
+### Project-specific (downstream decisions)
 
-Items requiring verification before being treated as implemented:
+These are not missing template code; each project must choose and configure:
 
 - Production hosting target and deployment platform.
 - Real production secret manager choice.
 - Real backup provider, PITR policy, and restore target.
-- Whether deployment should use Kubernetes, a PaaS, Docker Compose on a VM, or
-  another runtime.
-- Whether the preferred production tracing stack should be Sentry,
-  OpenTelemetry, or both.
+- Runtime choice: Kubernetes, PaaS, Docker Compose on a VM, or other.
+- Tracing stack: Sentry, OpenTelemetry, or both.
+
+### Template hardening (audit remediation in progress)
+
+Known gaps in the template itself before calling it safe for public SaaS reuse:
+
+- Auth endpoint rate limiting on login/register (password reset only today).
+- Worker job idempotency for password-reset email side effects on retry.
+- Staging environment validation parity with production (no localhost defaults).
+- Platform admin vs tenant admin boundary for tenant lifecycle APIs.
+- Registration policy gate (public vs disabled; email verification not built).
+- Access-token invalidation beyond short TTL + refresh revocation.
+- Production runtime examples (reverse proxy/TLS) and GitHub Environment checklist.
+- Scheduled backup workflow example; PITR documented as provider responsibility.
+- Load thresholds: manual workflow only; not a PR gate.
+- Malware scanning: integration point only, not a bundled scanner.
+- Legacy unversioned routes still mounted alongside `/api/v1`.
+- `make validate` does not yet enforce local coverage floor like CI.
 
 ## 4. Recommended Roadmap Ordered By ROI
 
-The template-wide roadmap is complete. Future work should come from downstream
-project needs rather than additional tracked template gaps.
+Audit remediation order (separate PRs):
 
-| Priority | Item | Goal | Recommended branch |
-|----------|------|------|--------------------|
-| — | Template roadmap complete | No additional tracked template-wide gaps remain. | — |
+| Priority | Item | Branch |
+|----------|------|--------|
+| P0 | Docs/status sync + onboarding | `docs/status-sync-and-onboarding` |
+| P0 | Auth login/register rate limits | `feature/auth-rate-limiting` |
+| P1 | Worker password-reset idempotency | `feature/worker-idempotency` |
+| P1 | Staging config validators | `feature/staging-config-parity` |
+| P1 | Platform vs tenant admin model | `feature/platform-admin-model` |
+| P1 | Registration policy gate | `feature/registration-policy` |
+| P1 | Access token invalidation strategy | `feature/access-token-revocation` |
+| P2 | Production runtime docs | `docs/production-runtime-examples` |
+| P2 | Scheduled backup + PITR checklist | `feature/scheduled-backup-docs` |
+| P2 | Load threshold CI smoke | `feature/load-threshold-ci-smoke` |
+| P2 | Malware scanning boundary docs/tests | `docs/malware-scanning` |
+| P2 | Legacy route deprecation policy | `docs/legacy-route-deprecation` |
+| P2 | Makefile validate + coverage | `chore/validate-with-coverage` |
 
 ## 5. Next Immediate Task
 
-There is no remaining tracked template-wide roadmap item.
+Current PR: docs/status sync and `docs/template-onboarding.md`.
 
-Before starting a downstream project, verify the project-specific items listed
-in "Main Production Gaps": hosting target, secret manager, backup provider,
-runtime platform, and tracing stack preference.
+Next branch: `feature/auth-rate-limiting` — Redis-backed rate limits on
+`/auth/login` and `/auth/register` using the existing rate-limit dependency.
 
 ## 6. Rules For Updating This File
 
