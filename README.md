@@ -495,6 +495,7 @@ Configure GitHub environment secrets for hook or SSH promotion as documented in
 Versioned API routes are mounted under `/api/v1`. Legacy unversioned paths such
 as `/auth` and `/users` remain available for backward compatibility but are
 marked deprecated in OpenAPI. New clients should use `/api/v1` exclusively.
+See `docs/legacy-route-deprecation.md` for the migration and removal checklist.
 Infrastructure endpoints (`/health`, `/metrics`) stay unversioned.
 
 Health:
@@ -1027,7 +1028,7 @@ still decide and wire up:
 - tracing stack preference (Sentry, OpenTelemetry, or both)
 - GitHub Environment secrets for deploy workflows
 
-Template hardening work tracked in `PROJECT_STATUS.md` includes legacy route
-deprecation policy and related docs/tests.
+Template hardening work tracked in `PROJECT_STATUS.md` includes Makefile
+validate coverage parity and the final audit verification pass.
 
 See `docs/template-onboarding.md` for the full clone → local → staging path.

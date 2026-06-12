@@ -13,7 +13,7 @@ The current implementation is a strong local-development and testable backend
 foundation using FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Docker
 Compose, pytest, Ruff, uv, and GitHub Actions.
 
-Current branch: `docs/malware-scanning` (audit remediation).
+Current branch: `docs/legacy-route-deprecation` (audit remediation).
 
 Current architecture:
 
@@ -124,8 +124,8 @@ Production-readiness summary:
   field redaction, request/job correlation via `request_id` propagation into
   worker jobs, and regression tests for formatters and redaction policy.
 - API versioning with `/api/v1` route namespace, deprecated legacy route
-  compatibility for existing unversioned paths, and route availability
-  regression tests.
+  compatibility for existing unversioned paths, documented deprecation policy in
+  `docs/legacy-route-deprecation.md`, and route availability regression tests.
 - OpenAPI documentation polish with tag descriptions, endpoint summaries,
   documented error envelope schema, bearer auth scheme, request examples, and
   contract regression tests.
@@ -263,7 +263,6 @@ These are not missing template code; each project must choose and configure:
 
 Known gaps in the template itself before calling it safe for public SaaS reuse:
 
-- Legacy unversioned routes still mounted alongside `/api/v1`.
 - `make validate` does not yet enforce local coverage floor like CI.
 
 ## 4. Recommended Roadmap Ordered By ROI
@@ -283,14 +282,14 @@ Audit remediation order (separate PRs):
 | P2 | Scheduled backup + PITR checklist | `feature/scheduled-backup-docs` ✅ |
 | P2 | Load threshold CI smoke | `feature/load-threshold-ci-smoke` ✅ |
 | P2 | Malware scanning boundary docs/tests | `docs/malware-scanning` ✅ |
-| P2 | Legacy route deprecation policy | `docs/legacy-route-deprecation` |
+| P2 | Legacy route deprecation policy | `docs/legacy-route-deprecation` ✅ |
 | P2 | Makefile validate + coverage | `chore/validate-with-coverage` |
 
 ## 5. Next Immediate Task
 
-Current PR: malware scanning integration boundary docs and tests.
+Current PR: legacy route deprecation policy.
 
-Next branch: `docs/legacy-route-deprecation`.
+Next branch: `chore/validate-with-coverage`.
 
 ## 6. Rules For Updating This File
 
