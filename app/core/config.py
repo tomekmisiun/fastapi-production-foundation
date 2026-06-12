@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     auth_login_rate_limit_window_seconds: int = Field(default=60, gt=0)
     auth_register_rate_limit_limit: int = Field(default=5, gt=0)
     auth_register_rate_limit_window_seconds: int = Field(default=300, gt=0)
+    rate_limit_trust_forwarded_headers: bool = False
     registration_policy: str = "public"
     legacy_routes_enabled: bool | None = None
     smtp_host: str = ""
@@ -229,6 +230,12 @@ class Settings(BaseSettings):
 
             if not parse_csv_setting(self.trusted_hosts):
                 errors.append(f"trusted_hosts is required in {environment_name}")
+
+            if not self.rate_limit_trust_forwarded_headers:
+                errors.append(
+                    "rate_limit_trust_forwarded_headers must be true "
+                    f"in {environment_name}",
+                )
 
         if self.cors_enabled and not parse_csv_setting(self.cors_allow_origins):
             errors.append(
