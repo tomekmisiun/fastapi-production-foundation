@@ -31,7 +31,11 @@ def handle_job(job: Job) -> None:
 
         db = SessionLocal()
         try:
-            create_password_reset_token_and_send_email(db, user_id)
+            create_password_reset_token_and_send_email(
+                db,
+                user_id,
+                job_id=job.id,
+            )
         finally:
             db.close()
 
