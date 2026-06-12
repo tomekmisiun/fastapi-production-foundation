@@ -4,8 +4,9 @@ Use this guide when starting a new project from this repository.
 
 ## What This Template Is
 
-- A **production-ready foundation** for FastAPI APIs: auth, users, audit logs,
-  Redis, workers, uploads, observability hooks, CI, and deployment scripts.
+- A **production-oriented foundation** with P0 blockers closed and P1 hardening
+  remaining — auth, users, audit logs, Redis, workers, uploads, observability
+  hooks, CI, and deployment scripts.
 - A **local/dev stack** with Docker Compose, pytest, migrations, and smoke
   checks.
 

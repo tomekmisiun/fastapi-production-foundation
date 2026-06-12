@@ -25,18 +25,24 @@ Only mark **Done** when verified in code and tests.
 
 ## Summary
 
-| Tier | Tasks | Est. effort | Primary focus |
-|------|-------|-------------|---------------|
-| P0 | 10 | ~2–3 weeks | Security defaults, production deploy safety, auth path viability |
-| P1 | 12 | ~3–4 weeks | Session hardening, data lifecycle, CI/ops credibility |
-| P2 | 14 | ~6–10 weeks | Scale, performance, architecture hygiene |
-| P3 | 8 | ~4–6 weeks | Enterprise observability, test depth, optional hardening |
+| Tier | Tasks | Est. effort | Primary focus | Status (June 2026) |
+|------|-------|-------------|---------------|---------------------|
+| P0 | 10 | ~2–3 weeks | Security defaults, production deploy safety, auth path viability | **Complete (10/10 Done)** |
+| P1 | 12 | ~3–4 weeks | Session hardening, data lifecycle, CI/ops credibility | Not started |
+| P2 | 14 | ~6–10 weeks | Scale, maintainability, and fork ergonomics | Not started |
+| P3 | 8 | ~4–6 weeks | Enterprise observability, test depth, optional hardening | Not started |
 
-**Recommended sequence:** Complete all P0 → batch P1 by theme (auth/CI, worker/data, docs) → P2 as scale signals appear → P3 for enterprise forks.
+**Recommended sequence:** P0 complete → batch P1 by theme (auth/CI, worker/data,
+docs) → P2 as scale signals appear → P3 for enterprise forks.
 
 ---
 
 ## P0 — Must fix before production recommendation
+
+**Status:** All tasks complete and merged (June 2026). P0 production-readiness
+blockers are closed; the template may be recommended for production-oriented
+forks when operators follow deployment docs. This is not a claim of
+enterprise-grade or fully finished platform status.
 
 | # | Task | Debt IDs | Effort | Risk | ROI | Status |
 |---|------|----------|--------|------|-----|--------|
@@ -44,20 +50,25 @@ Only mark **Done** when verified in code and tests.
 | 2 | **Worker processing-queue recovery** — reaper or visibility timeout for `app_jobs_processing` | TD-003 | M | Medium | Very High | Done |
 | 3 | **Production runtime scaling baseline** — multi-worker/gunicorn guidance, pool sizing formula, startup log of effective DB pool | TD-001, TD-013 | M | Low | Very High | Done |
 | 4 | **Proxy-aware rate limiting** — trusted forwarded client IP; required for any reverse-proxy deployment | TD-006 | M | Medium | Very High | Done |
-| 5 | **Metrics endpoint hardening** — internal bind, auth middleware option, and deployment doc for network restriction | TD-005 | S | Low | High | Done |
+| 5 | **Metrics endpoint hardening** — bearer auth for `/metrics` in production (`METRICS_REQUIRE_AUTH`, `METRICS_BEARER_TOKEN`) and deployment guidance; network-level bind/restriction remains an operator responsibility | TD-005 | S | Low | High | Done |
 | 6 | **JWT algorithm single source of truth** — unify encode/decode on `settings.algorithm` | TD-007 | S | Low | High | Done |
 | 7 | **RBAC role input validation** — reject arbitrary `role` strings on admin update | TD-008 | S | Low | High | Done |
 | 8 | **Upload production guard** — fail startup in production when file features are used without a real malware scanner URL | TD-009 | S | Low | High | Done |
 | 9 | **Worker poison-message handling** — unknown job types → DLQ, never silent ack | TD-011 | S | Low | High | Done |
 | 10 | **Redis production contract** — document Redis as a hard dependency, HA requirements, and explicit fail-closed behavior for refresh rotation | TD-004 | M | Medium | High | Done |
 
-**P0 exit criteria:** A team can deploy behind a reverse proxy without broken rate limits, doubled API surface, or silently lost worker jobs; production config rejects unsafe upload defaults; metrics are not public by default.
+**P0 exit criteria:** Met as of June 2026 — reverse-proxy rate limits work,
+legacy routes are gated in production, worker jobs are not silently lost,
+production config rejects unsafe upload defaults, and metrics require auth by
+default in production.
 
 **P0 cumulative estimate:** ~2–3 engineer-weeks · **Risk:** Medium overall · **ROI:** Very High
 
 ---
 
 ## P1 — Fix soon after production adoption
+
+**Status:** Not started — next engineering priority after P0 closure.
 
 | # | Task | Debt IDs | Effort | Risk | ROI | Status |
 |---|------|----------|--------|------|-----|--------|
@@ -228,12 +239,23 @@ June 2026 audit remediation (verified in code):
 | #39 | Malware scanning boundary docs/tests |
 | #40 | Legacy route deprecation policy |
 | #41 | `make validate` coverage floor parity |
+| #44 | AI rules refactor + CI/pre-commit policy guards |
+| #45 | P0 #1 Legacy route production gate (TD-002) |
+| #46 | P0 #2 Worker processing-queue reaper (TD-003) |
+| #47 | P0 #3 Production runtime scaling baseline (TD-001, TD-013) |
+| #48 | P0 #4 Proxy-aware rate limiting (TD-006) |
+| #49 | P0 #5 Metrics endpoint hardening (TD-005) |
+| #50 | P0 #6 JWT algorithm single source (TD-007) |
+| #51 | P0 #7 RBAC role input validation (TD-008) |
+| #52 | P0 #8 Upload production guard (TD-009) |
+| #53 | P0 #9 Worker unknown job types → DLQ (TD-011) |
+| #54 | P0 #10 Redis production contract doc (TD-004 contract) |
 
 ---
 
 ## How to use this file
 
-1. Complete **P0** tasks in order (#1 → #10) unless a dependency suggests otherwise.
+1. **P0 is complete** — proceed with **P1** tasks (#11 → #22).
 2. Create a feature branch per task, run `make validate`, merge via PR.
 3. Mark debt items **Done** in `TECH_DEBT.md` only after code verification.
 4. Move verified capabilities to `PROJECT_STATUS.md`.
