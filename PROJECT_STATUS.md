@@ -13,7 +13,10 @@ The current implementation is a strong local-development and testable backend
 foundation using FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Docker
 Compose, pytest, Ruff, uv, and GitHub Actions.
 
-Current branch: `chore/validate-with-coverage` (audit remediation).
+Current branch: `main` (audit remediation complete).
+
+Test baseline: **304 pytest tests**, **~89% coverage**, CI load-smoke on pull
+requests, `make validate` enforces the 85% coverage floor locally.
 
 Current architecture:
 
@@ -43,9 +46,9 @@ Production-readiness summary:
   reset, file uploads, health checks, metrics, logs, CI, and migration-aware
   tests.
 - The project is a **production-ready foundation** for new APIs, not a
-  finished multi-tenant SaaS platform. Core patterns are implemented and tested;
-  product-specific infra choices and several security/policy gaps listed below
-  remain before real production traffic.
+  finished multi-tenant SaaS platform. The June 2026 audit remediation pass
+  closed tracked template-hardening gaps; downstream projects still must choose
+  hosting, secrets, backups, tracing, and product policy before real traffic.
 - Anything not listed in "Completed Features" should be treated as not
   implemented unless a new roadmap item is added explicitly.
 
@@ -142,8 +145,8 @@ Production-readiness summary:
 - File storage hardening foundation with private object uploads, presigned
   download/upload flows, content sniffing, malware-scan integration point,
   bucket access verification, delete cleanup, and storage failure regression
-  tests. The malware scanner remains an integration point until a concrete
-  scanner/provider is wired in by a downstream project.
+  tests. Malware scanning is an integration boundary documented in
+  `docs/malware-scanning.md`; downstream projects wire a concrete scanner.
 - CI/CD quality foundation with pre-commit enforcement, pytest coverage
   artifacts, enforced coverage floor, blocking Trivy image policy checks,
   advisory SARIF upload, blocking runtime dependency review on pull requests,
@@ -178,8 +181,9 @@ Production-readiness summary:
 - Migration-aware pytest setup that resets the test database and applies
   Alembic migrations before running application tests.
 - Regression test confirming the test database is at the current Alembic head.
-- GitHub Actions CI for Docker build, Ruff, Redis-backed rate limit tests, and
-  the full pytest suite with PostgreSQL, test PostgreSQL, and Redis started.
+- GitHub Actions CI for Docker build, Ruff, backup/restore rehearsal,
+  Redis-backed rate limit tests, pull-request load threshold smoke, and the
+  full pytest suite with PostgreSQL, test PostgreSQL, and Redis started.
 - README documentation for project setup, API, auth flow, and production gaps.
 - Provider-neutral production deployment guide covering runtime shape,
   staging/production expectations, secrets, deployment flow, migrations,
@@ -250,47 +254,47 @@ Production-readiness summary:
 
 ## 3. Main Production Gaps
 
-### Project-specific (downstream decisions)
-
-These are not missing template code; each project must choose and configure:
+These are **downstream project decisions**, not missing template code:
 
 - Production hosting target and deployment platform.
 - Real production secret manager choice.
 - Real backup provider, PITR policy, and restore target.
 - Runtime choice: Kubernetes, PaaS, Docker Compose on a VM, or other.
 - Tracing stack: Sentry, OpenTelemetry, or both.
+- Client migration off deprecated unversioned routes (policy in
+  `docs/legacy-route-deprecation.md`).
+- Concrete malware scanner service when uploads are enabled in production.
 
-### Template hardening (audit remediation in progress)
+The June 2026 audit remediation pass (PRs #29–#41) closed all tracked
+template-hardening gaps from the initial production-readiness audit.
 
-Known gaps in the template itself before calling it safe for public SaaS reuse:
+## 4. Completed Audit Remediation (June 2026)
 
-_(Final audit verification pass pending in the next PR.)_
-
-## 4. Recommended Roadmap Ordered By ROI
-
-Audit remediation order (separate PRs):
-
-| Priority | Item | Branch |
-|----------|------|--------|
-| P0 | Docs/status sync + onboarding | `docs/status-sync-and-onboarding` |
-| P0 | Auth login/register rate limits | `feature/auth-rate-limiting` |
-| P1 | Worker password-reset idempotency | `feature/worker-idempotency` |
-| P1 | Staging config validators | `feature/staging-config-parity` ✅ |
-| P1 | Platform vs tenant admin model | `feature/platform-admin-model` ✅ |
-| P1 | Registration policy gate | `feature/registration-policy` ✅ |
-| P1 | Access token invalidation strategy | `feature/access-token-revocation` ✅ |
-| P2 | Production runtime docs | `docs/production-runtime-examples` ✅ |
-| P2 | Scheduled backup + PITR checklist | `feature/scheduled-backup-docs` ✅ |
-| P2 | Load threshold CI smoke | `feature/load-threshold-ci-smoke` ✅ |
-| P2 | Malware scanning boundary docs/tests | `docs/malware-scanning` ✅ |
-| P2 | Legacy route deprecation policy | `docs/legacy-route-deprecation` ✅ |
-| P2 | Makefile validate + coverage | `chore/validate-with-coverage` ✅ |
+| PR | Item |
+|----|------|
+| #29 | Docs/status sync + `docs/template-onboarding.md` |
+| #30 | Auth login/register rate limits |
+| #31 | Worker password-reset idempotency |
+| #32 | Staging config validators |
+| #33 | Platform vs tenant admin roles |
+| #34 | Registration policy gate |
+| #35 | Access token `token_version` invalidation |
+| #36 | Production runtime examples + deploy checklist |
+| #37 | Scheduled backup workflow + PITR checklist |
+| #38 | Pull-request load threshold CI smoke |
+| #39 | Malware scanning boundary docs/tests |
+| #40 | Legacy route deprecation policy |
+| #41 | `make validate` coverage floor parity |
 
 ## 5. Next Immediate Task
 
-Current PR: align make validate with CI coverage floor.
+No active template-hardening branch. For new work:
 
-Next branch: final audit verification (`PROJECT_STATUS.md` sync on `main`).
+1. Fork/clone and follow `docs/template-onboarding.md`.
+2. Configure staging/production env vars, GitHub environments, and provider
+   services.
+3. Add product-specific features on feature branches using the usual
+   branch → PR → merge workflow.
 
 ## 6. Rules For Updating This File
 
