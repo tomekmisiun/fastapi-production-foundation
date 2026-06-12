@@ -1028,8 +1028,9 @@ still decide and wire up:
   PITR is provider-specific)
 - tracing stack preference (Sentry, OpenTelemetry, or both)
 - GitHub Environment secrets for deploy workflows
+- migration of API clients from deprecated unversioned routes to `/api/v1`
 
-Template hardening work tracked in `PROJECT_STATUS.md` includes the final audit
-verification pass.
+The June 2026 audit remediation pass is complete. See `PROJECT_STATUS.md` for the
+merged PR list and current template state.
 
 See `docs/template-onboarding.md` for the full clone → local → staging path.
