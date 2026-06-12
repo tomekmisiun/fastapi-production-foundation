@@ -14,7 +14,7 @@ foundation using FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, Docker
 Compose, pytest, Ruff, uv, and GitHub Actions.
 
 Current branch for active feature work:
-`docs/production-runtime-examples` (audit remediation).
+`feature/scheduled-backup-docs` (audit remediation).
 
 Current architecture:
 
@@ -190,9 +190,10 @@ Production-readiness summary:
 - Local PostgreSQL backup and restore rehearsal workflow with Makefile targets,
   ignored dump files, and provider-neutral backup/restore runbook.
 - Backup and restore automation scripts, core-table verification, CI rehearsal,
-  and provider-hook examples documented in `docs/backup-restore-automation.md`.
-  Provider-specific PITR policies and live-environment restore targets remain
-  downstream responsibilities.
+  scheduled backup workflow example, PITR provider checklist in
+  `docs/pitr-and-scheduled-backups.md`, and provider-hook examples documented in
+  `docs/backup-restore-automation.md`. Provider-specific PITR policies and
+  live-environment restore targets remain downstream responsibilities.
 - Migration and rollback support with Makefile Alembic helper targets and a
   provider-neutral migration/rollback runbook covering expand/contract,
   failed migrations, forward-fix policy, and release checklists.
@@ -262,7 +263,6 @@ These are not missing template code; each project must choose and configure:
 
 Known gaps in the template itself before calling it safe for public SaaS reuse:
 
-- Scheduled backup workflow example; PITR documented as provider responsibility.
 - Load thresholds: manual workflow only; not a PR gate.
 - Malware scanning: integration point only, not a bundled scanner.
 - Legacy unversioned routes still mounted alongside `/api/v1`.
@@ -282,7 +282,7 @@ Audit remediation order (separate PRs):
 | P1 | Registration policy gate | `feature/registration-policy` ✅ |
 | P1 | Access token invalidation strategy | `feature/access-token-revocation` ✅ |
 | P2 | Production runtime docs | `docs/production-runtime-examples` ✅ |
-| P2 | Scheduled backup + PITR checklist | `feature/scheduled-backup-docs` |
+| P2 | Scheduled backup + PITR checklist | `feature/scheduled-backup-docs` ✅ |
 | P2 | Load threshold CI smoke | `feature/load-threshold-ci-smoke` |
 | P2 | Malware scanning boundary docs/tests | `docs/malware-scanning` |
 | P2 | Legacy route deprecation policy | `docs/legacy-route-deprecation` |
@@ -290,9 +290,9 @@ Audit remediation order (separate PRs):
 
 ## 5. Next Immediate Task
 
-Current PR: production runtime examples and GitHub environment checklist.
+Current PR: scheduled backup workflow and PITR checklist.
 
-Next branch: `feature/scheduled-backup-docs`.
+Next branch: `feature/load-threshold-ci-smoke`.
 
 ## 6. Rules For Updating This File
 

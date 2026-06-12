@@ -100,6 +100,10 @@ Use cron on the host:
 Use `.github/workflows/backup-rehearsal.yml` for manual or scheduled restore
 rehearsals in CI-like environments.
 
+Use `.github/workflows/scheduled-backup.yml` as a daily provider-hook or direct
+backup example against GitHub environment secrets. See
+`docs/pitr-and-scheduled-backups.md` for configuration and the PITR checklist.
+
 ## Operational Guidance
 
 - keep backups out of git
