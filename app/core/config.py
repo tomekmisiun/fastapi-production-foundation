@@ -76,6 +76,7 @@ class Settings(BaseSettings):
     email_from: str = "noreply@example.com"
     password_reset_url: str = "http://localhost:8000/reset-password"
     password_reset_token_expire_minutes: int = Field(default=30, gt=0)
+    password_reset_job_completion_ttl_seconds: int = Field(default=86400, gt=0)
     worker_queue_name: str = "app_jobs"
     worker_failed_queue_name: str = "app_jobs_failed"
     worker_processing_queue_name: str = "app_jobs_processing"
