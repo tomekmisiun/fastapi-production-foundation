@@ -102,7 +102,9 @@ class Settings(BaseSettings):
     prometheus_multiproc_dir: str = ""
     metrics_instance_id: str = ""
     webhook_signature_secret: str = ""
+    webhook_signature_tolerance_seconds: int = Field(default=300, gt=0)
     idempotency_ttl_seconds: int = Field(default=86400, gt=0)
+    idempotency_processing_lock_ttl_seconds: int = Field(default=60, gt=0)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
@@ -206,6 +208,21 @@ class Settings(BaseSettings):
         if self.cors_enabled and "*" in parse_csv_setting(self.cors_allow_origins):
             production_errors.append(
                 "cors_allow_origins must not include a wildcard in production",
+            )
+
+        webhook_secret = self.webhook_signature_secret.strip()
+
+        if webhook_secret == "":
+            production_errors.append(
+                "webhook_signature_secret is required in production",
+            )
+        elif webhook_secret.lower() in WEAK_SECRET_KEYS:
+            production_errors.append(
+                "webhook_signature_secret must not use a known weak placeholder in production",
+            )
+        elif len(webhook_secret) < 32:
+            production_errors.append(
+                "webhook_signature_secret must be at least 32 characters in production",
             )
 
         if production_errors:

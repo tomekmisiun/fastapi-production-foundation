@@ -2,7 +2,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.webhook_security import WebhookSignatureError, hash_payload, verify_hmac_signature
+from app.core.webhook_security import (
+    WebhookSignatureError,
+    hash_payload,
+    verify_timestamped_hmac_signature,
+)
 from app.models.webhook_event import WebhookEvent
 
 
@@ -39,7 +43,9 @@ def verify_inbound_webhook_signature(
     *,
     payload: bytes,
     signature: str | None,
+    timestamp: str | None,
     secret: str,
+    tolerance_seconds: int,
 ) -> None:
     if signature is None:
         raise HTTPException(
@@ -47,8 +53,25 @@ def verify_inbound_webhook_signature(
             detail="Webhook signature header is required",
         )
 
+    parsed_timestamp: int | None = None
+
+    if timestamp is not None:
+        try:
+            parsed_timestamp = int(timestamp.strip())
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Webhook timestamp must be a Unix timestamp",
+            ) from exc
+
     try:
-        verify_hmac_signature(payload, signature, secret)
+        verify_timestamped_hmac_signature(
+            payload=payload,
+            signature=signature,
+            timestamp=parsed_timestamp,
+            secret=secret,
+            tolerance_seconds=tolerance_seconds,
+        )
     except WebhookSignatureError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -8,9 +8,11 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.webhook import WebhookInboundRequest, WebhookInboundResponse
 from app.services.idempotency_service import (
+    begin_idempotent_request,
     build_scope_key,
-    get_cached_response,
+    cached_json_response,
     parse_cached_response_body,
+    release_idempotency_lock,
     store_response,
 )
 from app.services.webhook_service import (
@@ -27,8 +29,9 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
     response_model=WebhookInboundResponse,
     summary="Receive a signed inbound webhook",
     description=(
-        "Provider-neutral webhook entrypoint with HMAC signature verification, "
-        "event replay protection, and Idempotency-Key replay-safe response caching."
+        "Provider-neutral webhook entrypoint with timestamped HMAC signature "
+        "verification, replay-window protection, event deduplication, and "
+        "Idempotency-Key replay-safe response caching."
     ),
     responses=AUTH_ERROR_RESPONSES,
 )
@@ -37,59 +40,66 @@ async def inbound_webhook(
     db: Session = Depends(get_db),
     idempotency_key: str = Depends(get_idempotency_key),
     signature: str | None = Header(default=None, alias="X-Webhook-Signature"),
+    timestamp: str | None = Header(default=None, alias="X-Webhook-Timestamp"),
 ):
     raw_body = await request.body()
     scope_key = build_scope_key("webhooks:inbound", idempotency_key)
-    cached_record = get_cached_response(db, scope_key)
+    cached_record, lock_acquired = begin_idempotent_request(db, scope_key)
 
     if cached_record is not None:
-        return JSONResponse(
-            status_code=cached_record.status_code,
-            content=parse_cached_response_body(cached_record),
-        )
-
-    verify_inbound_webhook_signature(
-        payload=raw_body,
-        signature=signature,
-        secret=settings.webhook_signature_secret,
-    )
-
-    payload = WebhookInboundRequest.model_validate_json(raw_body)
+        return cached_json_response(cached_record)
 
     try:
-        persist_webhook_event(
-            db,
-            provider=payload.provider,
-            event_id=payload.event_id,
+        verify_inbound_webhook_signature(
             payload=raw_body,
+            signature=signature,
+            timestamp=timestamp,
+            secret=settings.webhook_signature_secret,
+            tolerance_seconds=settings.webhook_signature_tolerance_seconds,
         )
-    except HTTPException as exc:
-        if exc.status_code == status.HTTP_409_CONFLICT:
-            response_body = {
-                "status": "duplicate",
-                "provider": payload.provider,
-                "event_id": payload.event_id,
-            }
-            store_response(
+
+        payload = WebhookInboundRequest.model_validate_json(raw_body)
+
+        try:
+            persist_webhook_event(
                 db,
-                scope_key=scope_key,
-                status_code=status.HTTP_409_CONFLICT,
-                response_body=response_body,
+                provider=payload.provider,
+                event_id=payload.event_id,
+                payload=raw_body,
             )
-            return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=response_body)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_409_CONFLICT:
+                response_body = {
+                    "status": "duplicate",
+                    "provider": payload.provider,
+                    "event_id": payload.event_id,
+                }
+                stored_record = store_response(
+                    db,
+                    scope_key=scope_key,
+                    status_code=status.HTTP_409_CONFLICT,
+                    response_body=response_body,
+                )
+                return JSONResponse(
+                    status_code=stored_record.status_code,
+                    content=parse_cached_response_body(stored_record),
+                )
 
-        raise
+            raise
 
-    response_body = {
-        "status": "accepted",
-        "provider": payload.provider,
-        "event_id": payload.event_id,
-    }
-    store_response(
-        db,
-        scope_key=scope_key,
-        status_code=status.HTTP_200_OK,
-        response_body=response_body,
-    )
+        response_body = {
+            "status": "accepted",
+            "provider": payload.provider,
+            "event_id": payload.event_id,
+        }
+        stored_record = store_response(
+            db,
+            scope_key=scope_key,
+            status_code=status.HTTP_200_OK,
+            response_body=response_body,
+        )
 
-    return response_body
+        return parse_cached_response_body(stored_record)
+    finally:
+        if lock_acquired:
+            release_idempotency_lock(scope_key)

@@ -22,6 +22,7 @@ def production_settings_kwargs():
         "redis_password": "redis-production-password",
         "trusted_hosts_enabled": True,
         "trusted_hosts": "api.example.test",
+        "webhook_signature_secret": "production-webhook-secret-with-32-characters",
     }
 
 
@@ -94,6 +95,7 @@ def test_settings_rejects_local_production_placeholders():
     assert "redis_password is required in production" in error_message
     assert "trusted_hosts_enabled must be true in production" in error_message
     assert "trusted_hosts is required in production" in error_message
+    assert "webhook_signature_secret is required in production" in error_message
 
 
 def test_settings_accepts_strong_production_secret_key():
@@ -104,6 +106,21 @@ def test_settings_accepts_strong_production_secret_key():
 
     assert settings.environment == "production"
     assert settings.secret_key == "strong-production-secret-key-value"
+
+
+def test_settings_rejects_weak_production_webhook_secret():
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            _env_file=None,
+            **{
+                **production_settings_kwargs(),
+                "webhook_signature_secret": "change-me",
+            },
+        )
+
+    assert "webhook_signature_secret must not use a known weak placeholder" in str(
+        exc_info.value
+    )
 
 
 def test_settings_accepts_rate_limit_config():
