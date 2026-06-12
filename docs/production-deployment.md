@@ -231,7 +231,9 @@ HTTP hardening:
 - `TRUSTED_HOSTS`
 
 Production validation requires `TRUSTED_HOSTS_ENABLED=true`, a non-empty
-`TRUSTED_HOSTS` list, and disallows wildcard CORS origins.
+`TRUSTED_HOSTS` list, disallows wildcard CORS origins, and requires
+`RATE_LIMIT_TRUST_FORWARDED_HEADERS=true` so auth rate limits key on the
+original client IP behind a reverse proxy.
 
 Recommended API process settings behind a reverse proxy or load balancer:
 
