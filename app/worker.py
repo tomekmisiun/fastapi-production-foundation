@@ -26,6 +26,12 @@ from app.services.password_reset_service import (
 logger = logging.getLogger("app.worker")
 
 
+class UnknownJobTypeError(Exception):
+    def __init__(self, job_type: str):
+        self.job_type = job_type
+        super().__init__(f"unknown job type: {job_type}")
+
+
 def handle_job(job: Job) -> None:
     if job.type == SEND_PASSWORD_RESET_EMAIL_JOB:
         user_id = job.payload["user_id"]
@@ -42,7 +48,7 @@ def handle_job(job: Job) -> None:
 
         return
 
-    logger.warning("worker_unknown_job_type", extra=job_log_extra(job))
+    raise UnknownJobTypeError(job.type)
 
 
 def process_next_job() -> bool:
@@ -60,6 +66,14 @@ def process_next_job() -> bool:
 
     try:
         handle_job(job)
+    except UnknownJobTypeError as exc:
+        failed_job = move_job_to_failed_queue(job, exc)
+        observe_worker_job(job_type=job.type, status="failed")
+        logger.error(
+            "worker_unknown_job_type",
+            extra={**job_log_extra(failed_job), "attempts": failed_job.attempts},
+        )
+        return True
     except Exception as exc:
         if job.attempts < settings.worker_max_retries:
             retried_job = schedule_retry(job, exc)
