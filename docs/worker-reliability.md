@@ -66,6 +66,8 @@ Recommended patterns for downstream projects:
 - use a stable business key in the payload and enforce uniqueness in the
   database
 - store a processed-job marker keyed by `job.id` or a domain idempotency key
+- password-reset email jobs mark `password_reset_job_completed:{job_id}` in Redis
+  after successful token persistence and email delivery
 - make external side effects safe to repeat, such as upserts or provider calls
   guarded by unique request IDs
 - keep password-reset style jobs safe by invalidating previous tokens before

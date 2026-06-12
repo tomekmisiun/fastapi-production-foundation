@@ -82,6 +82,8 @@ Production-readiness summary:
   token cleanup.
 - Worker failed-job inspection and requeue command for Redis-backed failed
   jobs.
+- Password-reset worker job idempotency with Redis completion markers keyed by
+  `job.id` and retry-safe delivery regression tests.
 - Refresh token rotation with Redis-backed refresh token revocation.
 - Inactive users are blocked from login, access-token use, and refresh-token
   use.
@@ -246,7 +248,6 @@ These are not missing template code; each project must choose and configure:
 
 Known gaps in the template itself before calling it safe for public SaaS reuse:
 
-- Worker job idempotency for password-reset email side effects on retry.
 - Staging environment validation parity with production (no localhost defaults).
 - Platform admin vs tenant admin boundary for tenant lifecycle APIs.
 - Registration policy gate (public vs disabled; email verification not built).
@@ -280,10 +281,9 @@ Audit remediation order (separate PRs):
 
 ## 5. Next Immediate Task
 
-Current PR: auth login/register Redis-backed rate limits.
+Current PR: worker password-reset job idempotency.
 
-Next branch: `feature/worker-idempotency` — idempotent password-reset email
-jobs under worker retry.
+Next branch: `feature/staging-config-parity`.
 
 ## 6. Rules For Updating This File
 
