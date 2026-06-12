@@ -4,10 +4,11 @@ FastAPI backend template for building **production-oriented API foundations**
 with authentication, user management, audit logging, PostgreSQL, Redis, Docker,
 and pytest.
 
-This repository is a **production-ready foundation**, not a finished SaaS
-platform. It gives you auth, workers, storage hooks, CI, and deployment
-patterns; you still choose hosting, secrets, backups, and product-specific
-policies.
+This repository is a **production-oriented foundation**, not a finished SaaS
+platform or enterprise-grade product. P0 production-readiness blockers from the
+June 2026 audit are closed (see `PROJECT_STATUS.md` and `ROADMAP.md`); **P1**
+work remains before calling the template fully hardened for long-running
+production adoption.
 
 **New project?** Start with `docs/template-onboarding.md`.
 
@@ -328,7 +329,11 @@ When `ENVIRONMENT=staging`, the same remote-service placeholders are rejected
 for database, Redis, SMTP, password reset URL, and S3 settings. Staging does
 not require `TRUSTED_HOSTS` or `WEBHOOK_SIGNATURE_SECRET` (production does).
 
-Production also requires `TRUSTED_HOSTS_ENABLED=true`. If `CORS_ENABLED=true`,
+Production also requires `TRUSTED_HOSTS_ENABLED=true`,
+`RATE_LIMIT_TRUST_FORWARDED_HEADERS=true`, `METRICS_BEARER_TOKEN` (when
+`METRICS_REQUIRE_AUTH=true`, the production default),
+`UPLOAD_MALWARE_SCAN_ENABLED=true`, and a non-empty
+`UPLOAD_MALWARE_SCANNER_URL`. If `CORS_ENABLED=true`,
 `CORS_ALLOW_ORIGINS` must list explicit origins and must not use a wildcard.
 
 Runtime hardening settings cover database pool sizing, Redis TLS/auth options,
@@ -494,8 +499,9 @@ Configure GitHub environment secrets for hook or SSH promotion as documented in
 ## API Overview
 
 Versioned API routes are mounted under `/api/v1`. Legacy unversioned paths such
-as `/auth` and `/users` remain available for backward compatibility but are
-marked deprecated in OpenAPI. New clients should use `/api/v1` exclusively.
+as `/auth` and `/users` remain available for backward compatibility when
+`LEGACY_ROUTES_ENABLED=true` (default off in production) and are marked
+deprecated in OpenAPI. New clients should use `/api/v1` exclusively.
 See `docs/legacy-route-deprecation.md` for the migration and removal checklist.
 Infrastructure endpoints (`/health`, `/metrics`) stay unversioned.
 
@@ -891,6 +897,9 @@ Observability configuration:
 
 - `PROMETHEUS_MULTIPROC_DIR`: shared directory for multi-worker Uvicorn metrics
 - `METRICS_INSTANCE_ID`: optional per-replica identifier label
+- `METRICS_REQUIRE_AUTH`: require bearer token for `/metrics` (default `true`
+  in production)
+- `METRICS_BEARER_TOKEN`: bearer token when auth is required
 
 Request metric labels use HTTP method, route template, and status code. Route
 templates such as `/users/{user_id}` are used instead of raw request paths to
@@ -1018,19 +1027,31 @@ The production guide covers:
 ## Known Production Gaps
 
 The template ships implementation patterns and runbooks, but **not** a fully
-configured production environment. Before launch, each downstream project must
-still decide and wire up:
+configured production environment or finished SaaS platform.
+
+**P0 production blockers (June 2026 audit):** Closed — legacy route gating,
+worker queue recovery, proxy-aware rate limits, metrics auth defaults,
+production upload/malware guards, and related items are merged. See
+`ROADMAP.md` P0 (all Done) and `PROJECT_STATUS.md`.
+
+**Remaining before long-running production adoption:** ROADMAP **P1** work,
+including refresh/session hardening (TD-014, TD-015), graceful shutdown
+(TD-017), Redis resilience implementation beyond the contract (TD-004 / P1 #14),
+idempotency retention (TD-010), CI/observability doc repair (TD-037), and
+related items. Open debt: `TECH_DEBT.md`.
+
+Each downstream project must still decide and wire up:
 
 - production hosting target and runtime (Kubernetes, PaaS, VM, etc.)
 - secret manager and rotation policy
-- managed PostgreSQL, Redis, and object storage
+- managed PostgreSQL, Redis (HA per `docs/redis-production-contract.md`), and
+  object storage
 - backup provider, RPO/RTO, and PITR policy (logical backup scripts exist;
   PITR is provider-specific)
+- concrete malware scanner service URL (production validator requires one)
 - tracing stack preference (Sentry, OpenTelemetry, or both)
 - GitHub Environment secrets for deploy workflows
 - migration of API clients from deprecated unversioned routes to `/api/v1`
 
-The June 2026 audit remediation pass is complete. See `PROJECT_STATUS.md` for the
-merged PR list and current template state.
-
 See `docs/template-onboarding.md` for the full clone → local → staging path.
+See `PROJECT_STATUS.md` for verified capabilities and merged PR history.
