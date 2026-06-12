@@ -45,7 +45,7 @@ def test_openapi_v1_webhook_route_documents_signature_based_auth(client):
     schema = get_openapi_schema(client)
     operation = schema["paths"][f"{API_V1_PREFIX}/webhooks/inbound"]["post"]
 
-    assert "HMAC signature" in operation["description"]
+    assert "HMAC" in operation["description"]
     assert "security" not in operation
 
 

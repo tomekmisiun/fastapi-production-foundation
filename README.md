@@ -649,11 +649,14 @@ as `is_active`.
 The template includes provider-neutral primitives for safe external integrations:
 
 - `Idempotency-Key` persistence through `idempotency_records` for replay-safe
-  response caching.
-- `POST /api/v1/webhooks/inbound` with `X-Webhook-Signature` HMAC verification.
+  response caching with Redis-backed in-flight duplicate protection.
+- `POST /api/v1/webhooks/inbound` with timestamped HMAC verification using
+  `X-Webhook-Timestamp` and `X-Webhook-Signature`.
 - `webhook_events` persistence for replay protection by `(provider, event_id)`.
+- Stripe-style combined signatures (`t=...,v1=...`) are also supported.
 
-Configure `WEBHOOK_SIGNATURE_SECRET` for local webhook signature tests.
+Configure `WEBHOOK_SIGNATURE_SECRET`, `WEBHOOK_SIGNATURE_TOLERANCE_SECONDS`, and
+see `docs/webhook-idempotency.md` for provider-specific patterns.
 
 ## Multi-Tenancy
 
