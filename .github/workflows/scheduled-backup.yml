@@ -44,14 +44,29 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || inputs.dry_run }}
         run: |
-          if [[ "${BACKUP_MODE}" == "provider-hook" && -z "${BACKUP_HOOK_URL:-}" ]]; then
-            echo "BACKUP_HOOK_URL is not configured for this environment; skipping scheduled backup."
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            if [[ "${BACKUP_MODE}" == "provider-hook" && -z "${BACKUP_HOOK_URL:-}" ]]; then
+              echo "BACKUP_HOOK_URL is not configured for this environment; backup dry run only."
+              exit 0
+            fi
+
+            if [[ "${BACKUP_MODE}" == "direct" && -z "${DATABASE_URL:-}" ]]; then
+              echo "DATABASE_URL is not configured for direct backup mode; backup dry run only."
+              exit 0
+            fi
+
+            bash scripts/db_backup.sh
             exit 0
           fi
 
+          if [[ "${BACKUP_MODE}" == "provider-hook" && -z "${BACKUP_HOOK_URL:-}" ]]; then
+            echo "BACKUP_HOOK_URL is required for scheduled backups in provider-hook mode." >&2
+            exit 1
+          fi
+
           if [[ "${BACKUP_MODE}" == "direct" && -z "${DATABASE_URL:-}" ]]; then
-            echo "DATABASE_URL is not configured for direct backup mode; skipping scheduled backup."
-            exit 0
+            echo "DATABASE_URL is required for scheduled backups in direct mode." >&2
+            exit 1
           fi
 
           bash scripts/db_backup.sh

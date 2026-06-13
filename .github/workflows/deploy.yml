@@ -78,7 +78,10 @@ jobs:
         run: bash scripts/deploy_promote.sh
 
       - name: Run database migrations
-        if: inputs.dry_run == false && inputs.run_migrations
+        if: >-
+          inputs.dry_run == false &&
+          inputs.run_migrations &&
+          env.SKIP_RUNNER_MIGRATIONS != 'true'
         env:
           IMAGE_REF: ${{ steps.image.outputs.ref }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
