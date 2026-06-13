@@ -14,18 +14,19 @@ product.
 **Stack:** FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, S3-compatible
 storage, Docker Compose, pytest, Ruff, uv, GitHub Actions.
 
-**Test baseline (verified):** 322 pytest tests, ~89% line coverage, 85%
+**Test baseline (verified):** 346 pytest tests, ~89% line coverage, 85%
 coverage floor enforced in CI and `make validate`.
 
 **Production readiness (June 2026):**
 
 - **P0 blockers closed** — all ten ROADMAP P0 tasks (#1–#10) are implemented,
   tested, and merged to `main` (PRs #45–#54).
+- **P1 adoption hardening closed** — all twelve ROADMAP P1 tasks (#11–#22) are
+  implemented, tested, and merged to `main` (PRs #56–#67).
 - **Template scope unchanged** — not a fully configured production environment;
   forks still choose hosting, secrets, backups, scanners, and product policies.
-- **Next engineering priority** — ROADMAP **P1** (session hardening, graceful
-  shutdown, Redis resilience implementation for TD-004, CI/observability repair,
-  retention jobs, and related items). See `ROADMAP.md`.
+- **Next engineering priority** — ROADMAP **P2** (scale, maintainability, fork
+  ergonomics). See `ROADMAP.md`.
 
 **Architecture:**
 
@@ -36,7 +37,7 @@ coverage floor enforced in CI and `make validate`.
 - Schemas: `app/schemas`
 - Database session: `app/db/session.py`
 - Core config/security/infra: `app/core`
-- Migrations: `alembic/versions` (9 revisions)
+- Migrations: `alembic/versions` (10 revisions)
 - Tests: `tests/` (43 modules)
 
 **Documentation and rules:**
@@ -184,7 +185,6 @@ Local Alertmanager uses a no-op receiver stub; see `observability/alertmanager/R
 
 See `ROADMAP.md` (P1–P3) and `TECH_DEBT.md` for tracked gaps. Examples:
 
-- Redis resilience beyond the production contract (TD-004 implementation, P1 #14)
 - Real malware scanner service (integration boundary only; operator must wire URL)
 - Webhook processing pipeline, OAuth/MFA, PostgreSQL RLS
 

@@ -28,12 +28,11 @@ Only mark **Done** when verified in code and tests.
 | Tier | Tasks | Est. effort | Primary focus | Status (June 2026) |
 |------|-------|-------------|---------------|---------------------|
 | P0 | 10 | ~2–3 weeks | Security defaults, production deploy safety, auth path viability | **Complete (10/10 Done)** |
-| P1 | 12 | ~3–4 weeks | Session hardening, data lifecycle, CI/ops credibility | Not started |
+| P1 | 12 | ~3–4 weeks | Session hardening, data lifecycle, CI/ops credibility | **Complete (12/12 Done)** |
 | P2 | 14 | ~6–10 weeks | Scale, maintainability, and fork ergonomics | Not started |
 | P3 | 8 | ~4–6 weeks | Enterprise observability, test depth, optional hardening | Not started |
 
-**Recommended sequence:** P0 complete → batch P1 by theme (auth/CI, worker/data,
-docs) → P2 as scale signals appear → P3 for enterprise forks.
+**Recommended sequence:** P0 and P1 complete → P2 as scale signals appear → P3 for enterprise forks.
 
 ---
 
@@ -68,7 +67,7 @@ default in production.
 
 ## P1 — Fix soon after production adoption
 
-**Status:** Not started — next engineering priority after P0 closure.
+**Status:** All tasks complete and merged (June 2026).
 
 | # | Task | Debt IDs | Effort | Risk | ROI | Status |
 |---|------|----------|--------|------|-----|--------|
@@ -85,7 +84,9 @@ default in production.
 | 21 | **Password-reset idempotency race** — DB-level dedup keyed by `job_id` across commit/marker window | TD-022 | M | Medium | Medium | Done |
 | 22 | **Webhook event retention** — scheduled purge/archival for `webhook_events` | TD-024 | S | Low | Medium | Done |
 
-**P1 exit criteria:** Rolling deploys are safe; session revocation window is minimized; CI cannot ship broken images; observability docs match repo; tables with TTL do not grow unbounded.
+**P1 exit criteria:** Met as of June 2026 — rolling deploys drain safely, session
+revocation is hardened, CI blocks broken images, observability docs match the
+repo, and TTL-backed tables have retention jobs.
 
 **P1 cumulative estimate:** ~3–4 engineer-weeks · **Risk:** Medium · **ROI:** High
 
@@ -250,12 +251,24 @@ June 2026 audit remediation (verified in code):
 | #52 | P0 #8 Upload production guard (TD-009) |
 | #53 | P0 #9 Worker unknown job types → DLQ (TD-011) |
 | #54 | P0 #10 Redis production contract doc (TD-004 contract) |
+| #56 | P1 #11 Refresh/session hardening (TD-014, TD-015, TD-046) |
+| #57 | P1 #12 Graceful shutdown (TD-017) |
+| #58 | P1 #13 Idempotency retention (TD-010) |
+| #59 | P1 #20 Tenant ContextVar reset (TD-034) |
+| #60 | P1 #19 Global error handler (TD-020) |
+| #61 | P1 #22 Webhook event retention (TD-024) |
+| #62 | P1 #18 Webhook ingress baseline (TD-019) |
+| #63 | P1 #15 Container health/readiness (TD-016, TD-032) |
+| #64 | P1 #16 CI/deploy reliability (TD-035, TD-036, TD-043, TD-044) |
+| #65 | P1 #17 Observability asset/doc repair (TD-037, TD-038, TD-048) |
+| #66 | P1 #21 Password-reset idempotency (TD-022) |
+| #67 | P1 #14 Redis resilience implementation (TD-004) |
 
 ---
 
 ## How to use this file
 
-1. **P0 is complete** — proceed with **P1** tasks (#11 → #22).
+1. **P0 and P1 are complete** — proceed with **P2** tasks (#23 → #36) as needed.
 2. Create a feature branch per task, run `make validate`, merge via PR.
 3. Mark debt items **Done** in `TECH_DEBT.md` only after code verification.
 4. Move verified capabilities to `PROJECT_STATUS.md`.

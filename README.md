@@ -1034,11 +1034,13 @@ worker queue recovery, proxy-aware rate limits, metrics auth defaults,
 production upload/malware guards, and related items are merged. See
 `ROADMAP.md` P0 (all Done) and `PROJECT_STATUS.md`.
 
-**Remaining before long-running production adoption:** ROADMAP **P1** work,
-including refresh/session hardening (TD-014, TD-015), graceful shutdown
-(TD-017), Redis resilience implementation beyond the contract (TD-004 / P1 #14),
-idempotency retention (TD-010), CI/observability doc repair (TD-037), and
-related items. Open debt: `TECH_DEBT.md`.
+**P1 adoption hardening (June 2026):** Closed — session/refresh hardening,
+graceful shutdown, Redis cache degradation, retention jobs, CI/deploy fixes,
+observability doc repair, and related items are merged. See `ROADMAP.md` P1
+(all Done) and `PROJECT_STATUS.md`.
+
+**Next template engineering focus:** ROADMAP **P2** improvements and remaining
+open debt in `TECH_DEBT.md`.
 
 Each downstream project must still decide and wire up:
 
