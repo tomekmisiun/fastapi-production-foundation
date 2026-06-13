@@ -100,7 +100,7 @@ repo, and TTL-backed tables have retention jobs.
 | 24 | **Async architecture spike (long term)** — evaluate async SQLAlchemy + async routes; decision record for forks | TD-012 | XL | High | Medium | Not started |
 | 25 | **Worker observability** — scrape worker metrics in prod topology; tune maintenance/promote loop | TD-023, TD-042 | M | Medium | High | Not started |
 | 26 | **Pagination and admin search at scale** — keyset pagination; pg_trgm or prefix-only email search | TD-026, TD-027 | M | Medium | High | Not started |
-| 27 | **Cache invalidation redesign** — versioned keys instead of Redis `SCAN` pattern delete | TD-028 | M | Medium | Medium | Not started |
+| 27 | **Cache invalidation redesign** — versioned keys instead of Redis `SCAN` pattern delete | TD-028 | M | Medium | Medium | Done |
 | 28 | **Storage performance** — cached boto3 client; streaming multipart upload; async scan worker for presigned completes | TD-029, TD-030, TD-031 | M | Medium | High | Not started |
 | 29 | **Audit log lifecycle** — retention, partitioning, or export job | TD-025 | M | Medium | Medium | Done |
 | 30 | **Transaction integrity** — single transaction for user update + audit log (or outbox) | TD-033 | M | Medium | Medium | Done |

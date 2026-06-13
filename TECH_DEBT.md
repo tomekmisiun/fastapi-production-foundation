@@ -55,7 +55,7 @@ For verified current capabilities, see `PROJECT_STATUS.md`.
 | TD-025 | Audit logs are append-only with no retention (`app/services/audit_log_service.py`). | Admin queries slow; compliance storage grows. | Scheduled purge by `created_at` retention window. | M | Done |
 | TD-026 | User and audit lists use offset pagination (`app/api/routes/users.py`). | Deep pages become expensive at large tenant sizes. | Keyset/cursor pagination. | M | Open |
 | TD-027 | User email search uses `%term%` ILIKE (`app/services/user_service.py`). | Sequential scans under admin search load. | Trigram index or prefix-only search. | M | Open |
-| TD-028 | User list cache invalidation uses Redis `SCAN` + bulk delete (`app/core/cache.py`). | Redis CPU spikes under high admin write churn. | Versioned cache keys or tag-based invalidation. | M | Open |
+| TD-028 | User list cache invalidation uses Redis `SCAN` + bulk delete (`app/core/cache.py`). | Redis CPU spikes under high admin write churn. | Versioned cache keys or tag-based invalidation. | M | Done |
 | TD-029 | New boto3 S3 client created per request (`get_storage_service()` in `app/services/storage_service.py`). | Connection overhead on file endpoints under concurrency. | Lifespan-cached or module-level client. | S | Open |
 | TD-030 | Direct uploads buffer entire file in memory (`read_upload_body_limited`). | Memory spikes with concurrent max-size uploads. | Stream to S3 multipart upload. | M | Open |
 | TD-031 | Presigned upload complete re-downloads object from S3 for sniff/scan. | 2× bandwidth; API acts as proxy at scale. | Scan at bucket edge or async worker. | M | Open |
@@ -100,8 +100,8 @@ For verified current capabilities, see `PROJECT_STATUS.md`.
 |----------|------|------|
 | Critical | 0 | 4 |
 | High | 1 | 10 |
-| Medium | 14 | 19 |
+| Medium | 13 | 20 |
 | Low | 8 | 0 |
-| **Total** | **23** | **33** |
+| **Total** | **22** | **34** |
 
 Open counts reflect post-P1 state (346 tests, June 2026).
