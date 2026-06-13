@@ -14,7 +14,7 @@ product.
 **Stack:** FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis, S3-compatible
 storage, Docker Compose, pytest, Ruff, uv, GitHub Actions.
 
-**Test baseline (verified):** 346 pytest tests, ~89% line coverage, 85%
+**Test baseline (verified):** 370 pytest tests, ~89% line coverage, 85%
 coverage floor enforced in CI and `make validate`.
 
 **Production readiness (June 2026):**
@@ -23,10 +23,12 @@ coverage floor enforced in CI and `make validate`.
   tested, and merged to `main` (PRs #45–#54).
 - **P1 adoption hardening closed** — all twelve ROADMAP P1 tasks (#11–#22) are
   implemented, tested, and merged to `main` (PRs #56–#67).
+- **P2 scale and maintainability closed** — all fourteen ROADMAP P2 tasks
+  (#23–#36) are implemented, tested, and merged to `main` (PRs #69–#82).
 - **Template scope unchanged** — not a fully configured production environment;
   forks still choose hosting, secrets, backups, scanners, and product policies.
-- **Next engineering priority** — ROADMAP **P2** (scale, maintainability, fork
-  ergonomics). See `ROADMAP.md`.
+- **Next engineering priority** — ROADMAP **P3** (enterprise-scale optional
+  improvements). See `ROADMAP.md`.
 
 **Architecture:**
 
@@ -37,8 +39,8 @@ coverage floor enforced in CI and `make validate`.
 - Schemas: `app/schemas`
 - Database session: `app/db/session.py`
 - Core config/security/infra: `app/core`
-- Migrations: `alembic/versions` (10 revisions)
-- Tests: `tests/` (43 modules)
+- Migrations: `alembic/versions` (12 revisions)
+- Tests: `tests/` (54 modules)
 
 **Documentation and rules:**
 
@@ -56,8 +58,8 @@ coverage floor enforced in CI and `make validate`.
 - FastAPI bootstrap with versioned API (`/api/v1`) and deprecated legacy
   unversioned routes gated by `LEGACY_ROUTES_ENABLED` (default off in
   production; policy in `docs/legacy-route-deprecation.md`)
-- Centralized error envelope for HTTP, validation, auth, not-found, and rate-limit
-  responses
+- Centralized error envelope for HTTP, validation, auth, not-found, rate-limit,
+  and domain errors raised from services
 - Request ID middleware (`X-Request-ID`, `X-Process-Time`) with structured
   logging (`text`/`json`), sensitive-field redaction, and worker job
   `request_id` correlation
@@ -95,13 +97,16 @@ coverage floor enforced in CI and `make validate`.
 - Admin `/admin` endpoint; user CRUD, activate/deactivate, self-read/update
 - Admin role updates validated against `UserRole` enum (`user`, `admin`,
   `platform_admin`); invalid values return 422
-- User listing with pagination, sorting, filters, and email search
+- User listing with keyset cursor pagination (legacy offset fallback), sorting,
+  filters, and email search (`search_mode`: prefix default, optional contains
+  with pg_trgm)
 - Redis-backed user-list cache with tenant-scoped keys and invalidation on writes
 - Audit log model, indexes, admin listing, and writes for admin user actions
 
 ### Multi-tenancy
 
-- Tenant model with default `default` tenant seeded in migration
+- Tenant model with default tenant provisioned via `ensure_default_tenant()` /
+  `make seed-tenant` (no fixed `id=1` in migration)
 - `X-Tenant-Slug` resolution for unauthenticated flows; JWT `tenant_id` on
   authenticated requests with optional header cross-check
 - Tenant-scoped users (unique `(tenant_id, email)`), audit logs, uploads, cache
@@ -111,7 +116,11 @@ coverage floor enforced in CI and `make validate`.
 ### Files and storage
 
 - Multipart upload and presigned upload/complete/download/delete flows
-- S3-compatible storage abstraction (MinIO in local Compose)
+- Presigned complete returns `verification_status` (`pending` → worker verify);
+  download blocked with 409 until verified
+- S3-compatible storage abstraction with lifespan-cached boto3 client (MinIO in
+  local Compose)
+- Streaming multipart upload for direct uploads (no full in-memory buffer)
 - Size limits, content-type allowlist, magic-byte sniffing (PNG/JPEG/PDF)
 - Malware scanner integration point (disabled by default in dev; production
   requires enabled scan + HTTP scanner URL; documented in
@@ -130,7 +139,8 @@ coverage floor enforced in CI and `make validate`.
 - Redis job queue with main, processing, delayed, and failed queues
 - Stale processing-queue reaper before dequeue (visibility timeout configurable)
 - Unknown job types routed to failed queue (no silent acknowledge)
-- Exponential backoff retries, DLQ metadata, maintenance lock
+- Exponential backoff retries, DLQ metadata, maintenance lock, and tunable
+  maintenance/promote loop
 - Password-reset email job with Redis completion marker keyed by `job.id`
 - Failed-job inspection/requeue CLI (`app/worker_failed_jobs.py`)
 - Docker Compose worker service
@@ -174,7 +184,8 @@ Local Alertmanager uses a no-op receiver stub; see `observability/alertmanager/R
 - Alembic migrations with Makefile helpers; migration downgrade rehearsal tests
 - `scripts/db_backup.sh`, `db_restore_rehearsal.sh` with CI rehearsal
 - `perf/load_baseline.py`, load threshold profiles, CI load-smoke job
-- `make bootstrap`, `make smoke`, `make validate`, development seed data
+- `make bootstrap`, `make smoke`, `make validate`, development seed data, and
+  `make seed-tenant` for default tenant provisioning
 - Runbooks in `docs/` for deployment, secrets, migrations, backups, workers,
   tenant isolation, observability, Redis production contract, and template
   onboarding
