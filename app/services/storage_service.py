@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from tempfile import SpooledTemporaryFile
+from typing import BinaryIO
 
-import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -14,11 +15,19 @@ from app.core.file_validation import (
 )
 from app.core.ids import uuid7
 from app.core.permissions import Permission
+from app.core.s3_client import get_s3_client
 from app.core.upload_metadata import validate_upload_filename
-from app.models.uploaded_file import UploadedFile
+from app.models.uploaded_file import UploadedFile, UploadVerificationStatus
 from app.models.user import User
 from app.services.permission_service import user_has_permission
 from app.services.tenant_service import build_tenant_object_key_prefix
+
+
+class StorageVerificationError(Exception):
+    def __init__(self, detail: str, *, status_code: int = status.HTTP_400_BAD_REQUEST):
+        self.detail = detail
+        self.status_code = status_code
+        super().__init__(detail)
 
 
 @dataclass(frozen=True)
@@ -34,14 +43,8 @@ class PresignedUrl:
 
 
 class S3StorageProvider:
-    def __init__(self):
-        self.client = boto3.client(
-            "s3",
-            endpoint_url=settings.s3_endpoint_url,
-            aws_access_key_id=settings.s3_access_key_id,
-            aws_secret_access_key=settings.s3_secret_access_key,
-            region_name=settings.s3_region_name,
-        )
+    def __init__(self, client=None):
+        self.client = client or get_s3_client()
 
     def upload_file(
         self,
@@ -55,6 +58,20 @@ class S3StorageProvider:
             Key=object_key,
             Body=body,
             ContentType=content_type,
+        )
+
+    def upload_fileobj(
+        self,
+        *,
+        object_key: str,
+        fileobj: BinaryIO,
+        content_type: str,
+    ) -> None:
+        self.client.upload_fileobj(
+            fileobj,
+            settings.s3_bucket_name,
+            object_key,
+            ExtraArgs={"ContentType": content_type},
         )
 
     def delete_object(self, *, object_key: str) -> None:
@@ -81,9 +98,8 @@ class S3StorageProvider:
                 Key=object_key,
             )
         except ClientError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded object was not found in storage",
+            raise StorageVerificationError(
+                "Uploaded object was not found in storage",
             ) from exc
 
         content_type = response.get("ContentType") or "application/octet-stream"
@@ -100,17 +116,16 @@ class S3StorageProvider:
                 Key=object_key,
             )
         except ClientError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded object could not be verified",
+            raise StorageVerificationError(
+                "Uploaded object could not be verified",
             ) from exc
 
         body = response["Body"].read(max_bytes + 1)
 
         if len(body) > max_bytes:
-            raise HTTPException(
+            raise StorageVerificationError(
+                "File too large",
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                detail="File too large",
             )
 
         return body
@@ -176,17 +191,23 @@ class StorageService:
         content_type = validate_declared_content_type(
             file.content_type or "application/octet-stream",
         )
-        body = read_upload_body_limited(file)
-        validate_file_size(len(body))
-        validate_content_sniff(content_type, body)
-        ensure_malware_scan_is_clean(run_malware_scan(body, filename))
+        spool, size_bytes = spool_upload_stream_limited(file)
+        validate_file_size(size_bytes)
+
+        sniff_prefix = spool.read(512)
+        spool.seek(0)
+        validate_content_sniff(content_type, sniff_prefix)
+
+        scan_body = spool.read()
+        spool.seek(0)
+        ensure_malware_scan_is_clean(run_malware_scan(scan_body, filename))
 
         object_key = build_object_key(owner.tenant_id, owner.id, filename)
 
         try:
-            self.provider.upload_file(
+            self.provider.upload_fileobj(
                 object_key=object_key,
-                body=body,
+                fileobj=spool,
                 content_type=content_type,
             )
         except (BotoCoreError, ClientError) as exc:
@@ -194,6 +215,8 @@ class StorageService:
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Object storage upload failed",
             ) from exc
+        finally:
+            spool.close()
 
         uploaded_file = UploadedFile(
             tenant_id=owner.tenant_id,
@@ -201,7 +224,8 @@ class StorageService:
             object_key=object_key,
             filename=filename,
             content_type=content_type,
-            size_bytes=len(body),
+            size_bytes=size_bytes,
+            verification_status=UploadVerificationStatus.verified,
         )
 
         db.add(uploaded_file)
@@ -246,12 +270,11 @@ class StorageService:
             owner=owner,
         )
 
-        verify_stored_object(
+        verify_stored_object_metadata(
             self.provider,
             object_key=object_key,
             declared_content_type=normalized_content_type,
             declared_size_bytes=size_bytes,
-            filename=safe_filename,
         )
 
         uploaded_file = UploadedFile(
@@ -261,11 +284,18 @@ class StorageService:
             filename=safe_filename,
             content_type=normalized_content_type,
             size_bytes=size_bytes,
+            verification_status=UploadVerificationStatus.pending,
         )
 
         db.add(uploaded_file)
         db.commit()
         db.refresh(uploaded_file)
+
+        from app.services.upload_verification_service import (
+            enqueue_verify_presigned_upload_job,
+        )
+
+        enqueue_verify_presigned_upload_job(uploaded_file.id)
 
         return uploaded_file
 
@@ -280,6 +310,8 @@ class StorageService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",
             )
+
+        ensure_upload_is_downloadable(uploaded_file)
 
         try:
             return self.provider.generate_presigned_download_url(
@@ -319,8 +351,21 @@ class StorageService:
         self.provider.verify_bucket_access()
 
 
+_storage_service: StorageService | None = None
+
+
 def get_storage_service() -> StorageService:
-    return StorageService()
+    global _storage_service
+
+    if _storage_service is None:
+        _storage_service = StorageService()
+
+    return _storage_service
+
+
+def reset_storage_service_cache() -> None:
+    global _storage_service
+    _storage_service = None
 
 
 def get_uploaded_file(
@@ -365,6 +410,20 @@ def can_delete_uploaded_file(current_user: User, uploaded_file: UploadedFile) ->
     )
 
 
+def ensure_upload_is_downloadable(uploaded_file: UploadedFile) -> None:
+    if uploaded_file.verification_status == UploadVerificationStatus.pending:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="File verification is still in progress",
+        )
+
+    if uploaded_file.verification_status != UploadVerificationStatus.verified:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        )
+
+
 def validate_file_size(size_bytes: int) -> None:
     if size_bytes > settings.upload_max_size_bytes:
         raise HTTPException(
@@ -373,10 +432,10 @@ def validate_file_size(size_bytes: int) -> None:
         )
 
 
-def read_upload_body_limited(file: UploadFile) -> bytes:
+def spool_upload_stream_limited(file: UploadFile) -> tuple[SpooledTemporaryFile, int]:
     chunk_size = settings.upload_stream_chunk_size_bytes
-    chunks: list[bytes] = []
     total_size = 0
+    spool = SpooledTemporaryFile(max_size=settings.upload_spool_max_memory_bytes)
 
     while True:
         chunk = file.file.read(chunk_size)
@@ -387,14 +446,85 @@ def read_upload_body_limited(file: UploadFile) -> bytes:
         total_size += len(chunk)
 
         if total_size > settings.upload_max_size_bytes:
+            spool.close()
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail="File too large",
             )
 
-        chunks.append(chunk)
+        spool.write(chunk)
 
-    return b"".join(chunks)
+    spool.seek(0)
+    return spool, total_size
+
+
+def read_upload_body_limited(file: UploadFile) -> bytes:
+    spool, _total_size = spool_upload_stream_limited(file)
+
+    try:
+        return spool.read()
+    finally:
+        spool.close()
+
+
+def verify_stored_object_metadata(
+    provider: S3StorageProvider,
+    *,
+    object_key: str,
+    declared_content_type: str,
+    declared_size_bytes: int,
+) -> StoredObjectMetadata:
+    try:
+        metadata = provider.get_object_metadata(object_key=object_key)
+    except StorageVerificationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    try:
+        assert_stored_metadata_matches(
+            metadata=metadata,
+            declared_content_type=declared_content_type,
+            declared_size_bytes=declared_size_bytes,
+        )
+    except StorageVerificationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    return metadata
+
+
+def verify_stored_object_content(
+    provider: S3StorageProvider,
+    *,
+    object_key: str,
+    declared_content_type: str,
+    declared_size_bytes: int,
+    filename: str,
+) -> None:
+    metadata = provider.get_object_metadata(object_key=object_key)
+    assert_stored_metadata_matches(
+        metadata=metadata,
+        declared_content_type=declared_content_type,
+        declared_size_bytes=declared_size_bytes,
+    )
+
+    body = provider.download_object_body(
+        object_key=object_key,
+        max_bytes=metadata.size_bytes,
+    )
+
+    if len(body) != metadata.size_bytes:
+        raise StorageVerificationError(
+            "Uploaded object size could not be verified",
+        )
+
+    try:
+        validate_content_sniff(declared_content_type, body)
+    except HTTPException as exc:
+        raise StorageVerificationError(exc.detail) from exc
+
+    try:
+        ensure_malware_scan_is_clean(run_malware_scan(body, filename))
+    except HTTPException as exc:
+        raise StorageVerificationError(exc.detail) from exc
 
 
 def verify_stored_object(
@@ -405,33 +535,33 @@ def verify_stored_object(
     declared_size_bytes: int,
     filename: str,
 ) -> None:
-    metadata = provider.get_object_metadata(object_key=object_key)
+    try:
+        verify_stored_object_content(
+            provider,
+            object_key=object_key,
+            declared_content_type=declared_content_type,
+            declared_size_bytes=declared_size_bytes,
+            filename=filename,
+        )
+    except StorageVerificationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
+
+def assert_stored_metadata_matches(
+    *,
+    metadata: StoredObjectMetadata,
+    declared_content_type: str,
+    declared_size_bytes: int,
+) -> None:
     if metadata.size_bytes != declared_size_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Uploaded object size does not match declared size",
+        raise StorageVerificationError(
+            "Uploaded object size does not match declared size",
         )
 
     if metadata.content_type != declared_content_type:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Uploaded object content type does not match declared content type",
+        raise StorageVerificationError(
+            "Uploaded object content type does not match declared content type",
         )
-
-    body = provider.download_object_body(
-        object_key=object_key,
-        max_bytes=metadata.size_bytes,
-    )
-
-    if len(body) != metadata.size_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Uploaded object size could not be verified",
-        )
-
-    validate_content_sniff(declared_content_type, body)
-    ensure_malware_scan_is_clean(run_malware_scan(body, filename))
 
 
 def build_object_key(tenant_id: int, owner_id: int, filename: str) -> str:

@@ -1,12 +1,13 @@
 from botocore.exceptions import ClientError
-from fastapi import HTTPException
 
-from app.models.uploaded_file import UploadedFile
+from app.models.uploaded_file import UploadedFile, UploadVerificationStatus
 from app.services.storage_service import (
     PresignedUrl,
     StorageService,
+    StorageVerificationError,
     StoredObjectMetadata,
 )
+from app.services.upload_verification_service import verify_presigned_upload_in_worker
 
 
 PDF_BYTES = b"%PDF-1.4 test-content"
@@ -30,6 +31,19 @@ class FakeStorageProvider:
             "content_type": content_type,
         }
 
+    def upload_fileobj(
+        self,
+        *,
+        object_key: str,
+        fileobj,
+        content_type: str,
+    ) -> None:
+        self.upload_file(
+            object_key=object_key,
+            body=fileobj.read(),
+            content_type=content_type,
+        )
+
     def delete_object(self, *, object_key: str) -> None:
         self.deleted_keys.append(object_key)
         self.objects.pop(object_key, None)
@@ -41,9 +55,8 @@ class FakeStorageProvider:
         stored_object = self.objects.get(object_key)
 
         if stored_object is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Uploaded object was not found in storage",
+            raise StorageVerificationError(
+                "Uploaded object was not found in storage",
             )
 
         body = stored_object["body"]
@@ -58,16 +71,18 @@ class FakeStorageProvider:
         stored_object = self.objects.get(object_key)
 
         if stored_object is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Uploaded object could not be verified",
+            raise StorageVerificationError(
+                "Uploaded object could not be verified",
             )
 
         body = stored_object["body"]
         assert isinstance(body, bytes)
 
         if len(body) > max_bytes:
-            raise HTTPException(status_code=413, detail="File too large")
+            raise StorageVerificationError(
+                "File too large",
+                status_code=413,
+            )
 
         return body
 
@@ -119,6 +134,7 @@ class FakeStorageService(StorageService):
             filename=file.filename,
             content_type=file.content_type,
             size_bytes=len(body),
+            verification_status=UploadVerificationStatus.verified,
         )
 
         db.add(uploaded_file)
@@ -137,6 +153,20 @@ def create_user_and_login(client, email="file-user@example.com"):
     response = client.post("/auth/login", json=payload)
 
     return response.json()["access_token"]
+
+
+def verify_presigned_upload(db, uploaded_file_id: int, *, provider=None) -> None:
+    storage_service = (
+        StorageService(provider=provider)
+        if provider is not None
+        else None
+    )
+    verify_presigned_upload_in_worker(
+        db,
+        uploaded_file_id=uploaded_file_id,
+        storage_service=storage_service,
+    )
+    db.expire_all()
 
 
 def test_upload_requires_auth(client):
@@ -362,7 +392,7 @@ def test_upload_returns_503_when_storage_is_unavailable(client, monkeypatch):
     assert response.status_code == 503
 
 
-def test_presigned_upload_complete_verifies_stored_object(client, monkeypatch):
+def test_presigned_upload_complete_verifies_stored_object(client, db, monkeypatch):
     provider = FakeStorageProvider()
     monkeypatch.setattr(
         "app.api.routes.files.get_storage_service",
@@ -399,6 +429,16 @@ def test_presigned_upload_complete_verifies_stored_object(client, monkeypatch):
     assert complete_response.status_code == 201
     assert complete_response.json()["filename"] == "invoice.pdf"
     assert complete_response.json()["size_bytes"] == len(PDF_BYTES)
+    assert complete_response.json()["verification_status"] == "pending"
+
+    verify_presigned_upload(db, complete_response.json()["id"], provider=provider)
+
+    download_response = client.get(
+        f"/files/{complete_response.json()['id']}/download-url",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert download_response.status_code == 200
 
 
 def test_presigned_upload_complete_rejects_missing_object(client, monkeypatch):
@@ -468,7 +508,52 @@ def test_presigned_upload_complete_rejects_size_mismatch(client, monkeypatch):
     )
 
 
-def test_presigned_upload_complete_rejects_content_sniff_mismatch(client, monkeypatch):
+def test_download_url_returns_409_while_presigned_verification_pending(
+    client,
+    monkeypatch,
+):
+    provider = FakeStorageProvider()
+    monkeypatch.setattr(
+        "app.api.routes.files.get_storage_service",
+        lambda: StorageService(provider=provider),
+    )
+    token = create_user_and_login(client, email="pending-download-user@example.com")
+
+    presigned_response = client.post(
+        "/files/presigned-upload",
+        json={"filename": "invoice.pdf", "content_type": "application/pdf"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    object_key = presigned_response.json()["object_key"]
+    provider.upload_file(
+        object_key=object_key,
+        body=PDF_BYTES,
+        content_type="application/pdf",
+    )
+
+    complete_response = client.post(
+        "/files/presigned-upload/complete",
+        json={
+            "object_key": object_key,
+            "filename": "invoice.pdf",
+            "content_type": "application/pdf",
+            "size_bytes": len(PDF_BYTES),
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    file_id = complete_response.json()["id"]
+
+    response = client.get(
+        f"/files/{file_id}/download-url",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert complete_response.status_code == 201
+    assert response.status_code == 409
+    assert response.json()["error"]["message"] == "File verification is still in progress"
+
+
+def test_presigned_upload_complete_rejects_content_sniff_mismatch(client, db, monkeypatch):
     provider = FakeStorageProvider()
     monkeypatch.setattr(
         "app.api.routes.files.get_storage_service",
@@ -499,8 +584,14 @@ def test_presigned_upload_complete_rejects_content_sniff_mismatch(client, monkey
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 400
-    assert (
-        response.json()["error"]["message"]
-        == "File content does not match declared content type"
+    assert response.status_code == 201
+    assert response.json()["verification_status"] == "pending"
+
+    verify_presigned_upload(db, response.json()["id"], provider=provider)
+
+    download_response = client.get(
+        f"/files/{response.json()['id']}/download-url",
+        headers={"Authorization": f"Bearer {token}"},
     )
+
+    assert download_response.status_code == 404
