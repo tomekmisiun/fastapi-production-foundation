@@ -29,10 +29,10 @@ Only mark **Done** when verified in code and tests.
 |------|-------|-------------|---------------|---------------------|
 | P0 | 10 | ~2–3 weeks | Security defaults, production deploy safety, auth path viability | **Complete (10/10 Done)** |
 | P1 | 12 | ~3–4 weeks | Session hardening, data lifecycle, CI/ops credibility | **Complete (12/12 Done)** |
-| P2 | 14 | ~6–10 weeks | Scale, maintainability, and fork ergonomics | **In progress (14/14 Done)** |
+| P2 | 14 | ~6–10 weeks | Scale, maintainability, and fork ergonomics | **Complete (14/14 Done)** |
 | P3 | 8 | ~4–6 weeks | Enterprise observability, test depth, optional hardening | Not started |
 
-**Recommended sequence:** P0 and P1 complete → P2 as scale signals appear → P3 for enterprise forks.
+**Recommended sequence:** P0, P1, and P2 complete → P3 for enterprise forks as needed.
 
 ---
 
@@ -93,6 +93,8 @@ repo, and TTL-backed tables have retention jobs.
 ---
 
 ## P2 — Valuable improvements
+
+**Status:** All tasks complete and merged (June 2026).
 
 | # | Task | Debt IDs | Effort | Risk | ROI | Status |
 |---|------|----------|--------|------|-----|--------|
@@ -263,12 +265,26 @@ June 2026 audit remediation (verified in code):
 | #65 | P1 #17 Observability asset/doc repair (TD-037, TD-038, TD-048) |
 | #66 | P1 #21 Password-reset idempotency (TD-022) |
 | #67 | P1 #14 Redis resilience implementation (TD-004) |
+| #69 | P2 #33 Consolidate `UserRead` schema (TD-047) |
+| #70 | P2 #30 User update + audit log single transaction (TD-033) |
+| #71 | P2 #29 Audit log retention job (TD-025) |
+| #72 | P2 #27 Versioned user-list cache keys (TD-028) |
+| #73 | P2 #31 Pure ASGI request middleware (TD-045) |
+| #74 | P2 #23 Sync scaling benchmark doc (TD-012) |
+| #75 | P2 #24 Async architecture ADR (TD-012) |
+| #76 | P2 #35 Platform admin model docs (TD-040) |
+| #77 | P2 #32 Python 3.13 runtime baseline (TD-018) |
+| #78 | P2 #25 Worker observability (TD-023, TD-042) |
+| #79 | P2 #26 Keyset pagination and admin email search (TD-026, TD-027) |
+| #80 | P2 #28 Storage performance (TD-029, TD-030, TD-031) |
+| #81 | P2 #34 Tenant seed refactor (TD-039) |
+| #82 | P2 #36 Domain exceptions in service layer (TD-041) |
 
 ---
 
 ## How to use this file
 
-1. **P0 and P1 are complete** — proceed with **P2** tasks (#23 → #36) as needed.
+1. **P0, P1, and P2 are complete** — proceed with **P3** tasks as needed.
 2. Create a feature branch per task, run `make validate`, merge via PR.
 3. Mark debt items **Done** in `TECH_DEBT.md` only after code verification.
 4. Move verified capabilities to `PROJECT_STATUS.md`.

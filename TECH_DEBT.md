@@ -99,9 +99,9 @@ For verified current capabilities, see `PROJECT_STATUS.md`.
 | Severity | Open | Done |
 |----------|------|------|
 | Critical | 0 | 4 |
-| High | 0 | 13 |
-| Medium | 4 | 31 |
+| High | 0 | 11 |
+| Medium | 1 | 32 |
 | Low | 8 | 0 |
 | **Total** | **9** | **47** |
 
-Open counts reflect post-P1 state (346 tests, June 2026).
+Open counts reflect post-P2 state (370 tests, June 2026).
