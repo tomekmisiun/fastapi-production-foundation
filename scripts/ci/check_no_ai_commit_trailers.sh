@@ -20,14 +20,15 @@ check_commit_sha() {
   local sha="$1"
   local msg_file
   msg_file="$(mktemp)"
-  trap 'rm -f "$msg_file"' RETURN
 
   git log -1 --format=%B "$sha" >"$msg_file"
   if ! message_has_ai_commit_trailers "$msg_file"; then
+    rm -f "$msg_file"
     printf 'Commit: %s\n' "$sha" >&2
     git log -1 --oneline "$sha" >&2
     return 1
   fi
+  rm -f "$msg_file"
 }
 
 check_commit_range() {
