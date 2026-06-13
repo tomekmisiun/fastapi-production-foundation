@@ -308,3 +308,80 @@ def test_cleanup_old_webhook_events_deletes_events_past_retention(db, monkeypatc
     assert deleted_count == 1
     assert db.query(WebhookEvent).filter(WebhookEvent.id == old_event_id).first() is None
     assert db.query(WebhookEvent).filter(WebhookEvent.id == recent_event_id).first() is not None
+
+
+def test_inbound_webhook_rejects_oversized_payload(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.core.config.settings.webhook_signature_secret",
+        WEBHOOK_SECRET,
+    )
+    monkeypatch.setattr("app.core.config.settings.webhook_max_body_bytes", 32)
+    raw_body = json.dumps(build_webhook_payload()).encode("utf-8")
+
+    response = client.post(
+        WEBHOOK_PATH,
+        content=raw_body,
+        headers=build_webhook_headers(raw_body),
+    )
+
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "payload_too_large"
+
+
+def test_inbound_webhook_rate_limits_by_ip(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.core.config.settings.webhook_signature_secret",
+        WEBHOOK_SECRET,
+    )
+    monkeypatch.setattr("app.core.config.settings.webhook_ingress_rate_limit_limit", 1)
+    monkeypatch.setattr(
+        "app.core.config.settings.webhook_ingress_rate_limit_window_seconds",
+        60,
+    )
+    raw_body = json.dumps(build_webhook_payload()).encode("utf-8")
+    headers = build_webhook_headers(raw_body, idempotency_key=f"key-{uuid7().hex}")
+
+    first_response = client.post(WEBHOOK_PATH, content=raw_body, headers=headers)
+
+    second_body = json.dumps(build_webhook_payload()).encode("utf-8")
+    second_response = client.post(
+        WEBHOOK_PATH,
+        content=second_body,
+        headers=build_webhook_headers(second_body, idempotency_key=f"key-{uuid7().hex}"),
+    )
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 429
+
+
+def test_inbound_webhook_rate_limits_by_provider(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.core.config.settings.webhook_signature_secret",
+        WEBHOOK_SECRET,
+    )
+    monkeypatch.setattr("app.core.config.settings.webhook_provider_rate_limit_limit", 1)
+    monkeypatch.setattr(
+        "app.core.config.settings.webhook_provider_rate_limit_window_seconds",
+        60,
+    )
+
+    first_body = json.dumps(build_webhook_payload(event_id=f"evt_{uuid7().hex}")).encode(
+        "utf-8",
+    )
+    second_body = json.dumps(build_webhook_payload(event_id=f"evt_{uuid7().hex}")).encode(
+        "utf-8",
+    )
+
+    first_response = client.post(
+        WEBHOOK_PATH,
+        content=first_body,
+        headers=build_webhook_headers(first_body, idempotency_key=f"key-{uuid7().hex}"),
+    )
+    second_response = client.post(
+        WEBHOOK_PATH,
+        content=second_body,
+        headers=build_webhook_headers(second_body, idempotency_key=f"key-{uuid7().hex}"),
+    )
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 429
