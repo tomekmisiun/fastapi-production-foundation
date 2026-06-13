@@ -86,6 +86,11 @@ if [[ -n "${DEPLOY_SSH_HOST:-}" ]]; then
   ssh "${ssh_args[@]}" "${DEPLOY_SSH_USER}@${DEPLOY_SSH_HOST}" \
     "REMOTE_APP_DIR=${REMOTE_APP_DIR} IMAGE_REF=${IMAGE_REF} RUN_MIGRATIONS=${RUN_MIGRATIONS} bash -s" \
     <"$(dirname "${BASH_SOURCE[0]}")/deploy_remote_compose.sh"
+
+  if [[ -n "${GITHUB_ENV:-}" ]]; then
+    echo "SKIP_RUNNER_MIGRATIONS=true" >>"${GITHUB_ENV}"
+  fi
+
   echo "SSH deployment finished."
   exit 0
 fi
