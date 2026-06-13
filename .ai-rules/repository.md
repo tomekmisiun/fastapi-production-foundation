@@ -16,8 +16,11 @@
 ## Enforcement vs Policy
 
 - Mechanical checks (coverage floor, lockfile pairing, migration guards, secrets
-  scans) live in CI, pre-commit, and `docs/ci-policy-guards.md`.
+  scans, AI commit-trailer guards) live in CI, pre-commit, and
+  `docs/ci-policy-guards.md`.
 - `.ai-rules/` keeps judgment rules that automation cannot enforce.
+- Commit messages MUST NOT contain AI attribution trailers — see
+  `.ai-rules/git.md`. Agents MUST verify the exact message before commit.
 
 ## Source Of Truth For AI Rules
 

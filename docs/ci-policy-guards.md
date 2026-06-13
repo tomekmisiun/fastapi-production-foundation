@@ -31,6 +31,32 @@ make validate-ai-workflows
 
 Included in `make policy-guards`.
 
+### No AI attribution in commit messages
+
+`scripts/ci/check_no_ai_commit_trailers.sh` scans commit messages in the checked
+range (`origin/<base>..HEAD` on pull requests; `GITHUB_EVENT_BEFORE..HEAD` on
+push to `main`; locally `origin/main..HEAD` when available).
+
+Fails when any commit message contains AI attribution trailers, including:
+
+- `cursoragent@cursor.com`
+- `Co-authored-by: Cursor` / `Claude` / `Codex` (and similar agent names)
+- `Authored-by:` lines naming agent tools
+- `Generated-by:` / `Created-by: AI`
+
+**Local checks:**
+
+```bash
+make policy-guards
+bash scripts/ci/check_no_ai_commit_trailers.sh --message-file /path/to/msg
+bash scripts/ci/check_no_ai_commit_trailers.sh --commit HEAD
+```
+
+Pre-commit commit-msg hook uses the same patterns when installed. Agents MUST
+verify the exact commit message before committing (see `.ai-rules/git.md`).
+
+**Bypass:** none.
+
 ### Model change requires migration
 
 If any file under `app/models/` changes, the PR must add a new file under
@@ -93,7 +119,8 @@ Hooks enforce:
 - no committed `.env` files (`.env.example` is allowed)
 - private key detection
 - staged `pyproject.toml` / `uv.lock` pairing
-- no AI authorship trailers in commit messages (when commit-msg hook installed)
+- no AI authorship trailers in commit messages (when commit-msg hook installed;
+  same patterns as `scripts/ci/check_no_ai_commit_trailers.sh`)
 
 Pre-commit does **not** run pytest, Docker builds, or migrations.
 
