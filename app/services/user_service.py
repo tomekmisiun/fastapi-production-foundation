@@ -3,14 +3,24 @@ import json
 
 from sqlalchemy.orm import Session
 
-from app.core.cache import delete_cache_pattern, get_json_cache, set_json_cache
+from app.core.cache import (
+    get_cache_version,
+    get_json_cache,
+    increment_cache_version,
+    set_json_cache,
+)
 from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import UserAdminUpdate, UserRead, UserSelfUpdate
 from app.services.tenant_service import build_tenant_cache_prefix
 
 
-USERS_LIST_CACHE_PREFIX = "users:list:v1"
+USERS_LIST_CACHE_NAMESPACE = "users:list:v1"
+USERS_LIST_CACHE_VERSION_SUFFIX = "users:list:version"
+
+
+def build_users_list_cache_version_key(tenant_id: int) -> str:
+    return f"{build_tenant_cache_prefix(tenant_id)}:{USERS_LIST_CACHE_VERSION_SUFFIX}"
 
 
 def get_users(
@@ -112,14 +122,16 @@ def build_users_list_cache_key(
     cache_hash = hashlib.sha256(
         json.dumps(cache_params, sort_keys=True).encode("utf-8")
     ).hexdigest()
+    cache_version = get_cache_version(build_users_list_cache_version_key(tenant_id))
 
-    return f"{build_tenant_cache_prefix(tenant_id)}:{USERS_LIST_CACHE_PREFIX}:{cache_hash}"
+    return (
+        f"{build_tenant_cache_prefix(tenant_id)}:"
+        f"{USERS_LIST_CACHE_NAMESPACE}:v{cache_version}:{cache_hash}"
+    )
 
 
 def invalidate_users_list_cache(tenant_id: int) -> None:
-    delete_cache_pattern(
-        f"{build_tenant_cache_prefix(tenant_id)}:{USERS_LIST_CACHE_PREFIX}:*"
-    )
+    increment_cache_version(build_users_list_cache_version_key(tenant_id))
 
 
 def increment_user_token_version(db: Session, user: User) -> User:
