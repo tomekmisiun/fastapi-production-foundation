@@ -13,6 +13,7 @@ ERROR_CODES_BY_STATUS = {
     status.HTTP_404_NOT_FOUND: "not_found",
     status.HTTP_405_METHOD_NOT_ALLOWED: "method_not_allowed",
     status.HTTP_409_CONFLICT: "conflict",
+    status.HTTP_413_CONTENT_TOO_LARGE: "payload_too_large",
     422: "validation_error",
     status.HTTP_429_TOO_MANY_REQUESTS: "rate_limit_exceeded",
     status.HTTP_500_INTERNAL_SERVER_ERROR: "internal_server_error",
