@@ -1,1 +1,1 @@
-P2 #26: downgrade drops new ix_users_email_trgm index only (reversible index add).
+P2 #28: downgrade drops uploaded_files.verification_status column only.

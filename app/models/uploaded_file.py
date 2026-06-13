@@ -1,8 +1,15 @@
+from enum import StrEnum
+
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.db.base import Base
+
+
+class UploadVerificationStatus(StrEnum):
+    pending = "pending"
+    verified = "verified"
 
 
 class UploadedFile(Base):
@@ -25,6 +32,12 @@ class UploadedFile(Base):
     filename: Mapped[str] = mapped_column(String, nullable=False)
     content_type: Mapped[str] = mapped_column(String, nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    verification_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default=UploadVerificationStatus.verified,
+        server_default=UploadVerificationStatus.verified,
+    )
     created_at = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

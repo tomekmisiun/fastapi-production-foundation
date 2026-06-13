@@ -116,6 +116,7 @@ class Settings(BaseSettings):
     upload_allowed_content_types: str = "image/png,image/jpeg,application/pdf"
     upload_presigned_url_expire_seconds: int = Field(default=300, gt=0)
     upload_stream_chunk_size_bytes: int = Field(default=65_536, gt=0)
+    upload_spool_max_memory_bytes: int = Field(default=1_048_576, gt=0)
     upload_malware_scan_enabled: bool = False
     upload_malware_scanner_url: str = ""
     upload_malware_scanner_timeout_seconds: float = Field(default=5.0, gt=0)
