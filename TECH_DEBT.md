@@ -98,12 +98,10 @@ For verified current capabilities, see `PROJECT_STATUS.md`.
 
 | Severity | Open | Done |
 |----------|------|------|
-| Critical | 1 | 3 |
-| High | 2 | 9 |
-| Medium | 32 | 1 |
+| Critical | 0 | 4 |
+| High | 1 | 10 |
+| Medium | 17 | 16 |
 | Low | 8 | 0 |
-| **Total** | **43** | **13** |
+| **Total** | **26** | **30** |
 
-Open counts reflect post-P0 state (322 tests, June 2026). **TD-004** remains
-**Open** — production contract documented in `docs/redis-production-contract.md`;
-resilience implementation is deferred to ROADMAP P1 #14.
+Open counts reflect post-P1 state (346 tests, June 2026).

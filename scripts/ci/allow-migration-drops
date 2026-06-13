@@ -1,1 +1,2 @@
-Standard Alembic downgrade for new password_reset_job_completions table (P1 #21).
+# Leave this file comment-only unless a PR adds an approved destructive migration.
+# To bypass the CI check, replace this line with a one-line reason in the same PR.
