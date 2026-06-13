@@ -32,6 +32,10 @@ from app.services.password_reset_service import (
     cleanup_expired_password_reset_tokens,
     create_password_reset_token_and_send_email,
 )
+from app.services.upload_verification_service import (
+    VERIFY_PRESIGNED_UPLOAD_JOB,
+    verify_presigned_upload_in_worker,
+)
 from app.services.webhook_service import cleanup_old_webhook_events
 
 
@@ -57,6 +61,20 @@ def handle_job(job: Job) -> None:
                 db,
                 user_id,
                 job_id=job.id,
+            )
+        finally:
+            db.close()
+
+        return
+
+    if job.type == VERIFY_PRESIGNED_UPLOAD_JOB:
+        uploaded_file_id = job.payload["uploaded_file_id"]
+
+        db = SessionLocal()
+        try:
+            verify_presigned_upload_in_worker(
+                db,
+                uploaded_file_id=uploaded_file_id,
             )
         finally:
             db.close()
