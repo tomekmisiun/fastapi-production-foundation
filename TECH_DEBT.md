@@ -62,16 +62,16 @@ For verified current capabilities, see `PROJECT_STATUS.md`.
 | TD-032 | Readiness checks DB and Redis only, not S3 (`app/api/routes/health.py`). | Load balancer marks ready while uploads fail at runtime. | Optional S3 head-bucket in readiness when file features enabled. | S | Done |
 | TD-033 | User update and audit log are separate DB commits (`app/api/routes/users.py`). | User changed without audit row on partial failure. | Single transaction or outbox pattern. | M | Open |
 | TD-034 | Tenant `ContextVar` tokens stored but never reset (`app/api/dependencies/tenant.py`). | Stale tenant context under thread-reuse edge cases. | Clear tenant context at request entry in middleware. | S | Done |
-| TD-035 | CI `docker-build` job does not depend on `test` (`.github/workflows/ci.yml`). | Image can pass Trivy while tests fail on same commit. | Add `needs: [test]`. | S | Open |
-| TD-036 | Scheduled backup workflow exits successfully when secrets are missing. | False confidence that backups run. | Fail cron when required secrets absent. | S | Open |
+| TD-035 | CI `docker-build` job does not depend on `test` (`.github/workflows/ci.yml`). | Image can pass Trivy while tests fail on same commit. | Add `needs: [test]`. | S | Done |
+| TD-036 | Scheduled backup workflow exits successfully when secrets are missing. | False confidence that backups run. | Fail cron when required secrets absent. | S | Done |
 | TD-037 | Observability docs reference missing assets (`.env.observability.example`, Grafana Prometheus datasource, dashboards). | Hundreds of clones waste time on broken local observability setup. | Add files or remove incorrect README/PROJECT_STATUS claims. | M | Open |
 | TD-038 | Promtail config hardcodes Docker container name (`observability/promtail/promtail.yml`). | Log collection fails after compose project rename. | Use compose service discovery labels. | S | Open |
 | TD-039 | Tenant `default` seeded with fixed `id=1` in migration (`a1b2c3d4e5f6`). | Migration/assumption conflicts in multi-environment clones. | Seed via app command instead of migration bulk insert. | M | Open |
 | TD-040 | `platform_admin` is a tenant-bound user row, not a separate operator model. | Every fork re-implements operator/security model. | Separate operator table or explicit demo-only documentation. | L | Open |
 | TD-041 | Services raise `HTTPException` directly throughout service layer. | Hard to reuse from workers/CLI; inconsistent error handling in forks. | Domain exceptions translated at route boundary. | L | Open |
 | TD-042 | Worker loop runs maintenance and `promote_delayed_jobs` on every iteration. | Redis overhead under high queue depth. | Separate maintenance ticker; batch promote with limits. | S | Open |
-| TD-043 | Possible double migration on deploy (SSH script + runner `deploy_migrate.sh`). | Redundant Alembic runs confuse runbooks. | Deduplicate migration step in deploy workflow. | S | Open |
-| TD-044 | `release.yml` publishes `latest` tag while production deploy discourages it. | Easy misuse of mutable tag in production. | Document tension or stop tagging `latest`. | S | Open |
+| TD-043 | Possible double migration on deploy (SSH script + runner `deploy_migrate.sh`). | Redundant Alembic runs confuse runbooks. | Deduplicate migration step in deploy workflow. | S | Done |
+| TD-044 | `release.yml` publishes `latest` tag while production deploy discourages it. | Easy misuse of mutable tag in production. | Document tension or stop tagging `latest`. | S | Done |
 | TD-045 | `BaseHTTPMiddleware` used for request logging (`app/core/middleware.py`). | Extra latency under high load (known Starlette overhead). | Pure ASGI middleware. | M | Open |
 | TD-046 | JWT access/refresh TTLs hardcoded (30 min / 7 days). | Product policy changes require code edits across forks. | Env-driven TTL settings. | S | Done |
 | TD-047 | Duplicate `UserRead` schema in `app/schemas/auth.py` and `app/schemas/user.py`. | API contract drift risk. | Consolidate to single schema module. | S | Open |

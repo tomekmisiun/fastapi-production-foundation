@@ -40,6 +40,8 @@ jobs:
           file: Dockerfile
           target: production
           push: true
+          # `latest` is a convenience tag for local/dev pulls only. Production
+          # deploy workflows reject `latest` unless ALLOW_LATEST_PRODUCTION=true.
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
             ${{ steps.meta.outputs.image }}:latest
@@ -54,6 +56,7 @@ jobs:
           version_tag=${{ steps.meta.outputs.version }}
           sha_tag=${{ github.sha }}
           latest_tag=latest
+          latest_tag_policy=convenience-only-do-not-deploy-to-production
           EOF
 
       - name: Publish release artifact

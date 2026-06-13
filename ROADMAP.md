@@ -77,7 +77,7 @@ default in production.
 | 13 | **Idempotency retention job** — purge expired `idempotency_records` rows in worker maintenance | TD-010 | S | Low | High | Done |
 | 14 | **Redis resilience implementation** — circuit breaker or bounded retry for non-auth-critical cache paths; clearer error responses when Redis is down | TD-004 | L | High | High | Not started |
 | 15 | **Container health and readiness** — Docker `HEALTHCHECK`; optional S3 head-bucket when uploads enabled | TD-016, TD-032 | S | Low | High | Done |
-| 16 | **CI and deploy reliability** — gate `docker-build` on tests; fail silent backup cron; dedupe migration steps; clarify `latest` tag policy | TD-035, TD-036, TD-043, TD-044 | S | Low | High | Not started |
+| 16 | **CI and deploy reliability** — gate `docker-build` on tests; fail silent backup cron; dedupe migration steps; clarify `latest` tag policy | TD-035, TD-036, TD-043, TD-044 | S | Low | High | Done |
 | 17 | **Observability asset and doc repair** — add `.env.observability.example`, Grafana Prometheus datasource, dashboard stub or fix README; fix Promtail target; document Alertmanager stub | TD-037, TD-038, TD-048 | M | Low | High | Not started |
 | 18 | **Webhook ingress baseline** — max body size; per-IP/provider rate limits | TD-019 | S | Low | Medium | Done |
 | 19 | **Global error handler** — generic 500 handler; enforce non-debug production guidance | TD-020 | S | Low | Medium | Done |
