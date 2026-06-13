@@ -46,6 +46,12 @@ Use before opening or merging a PR. Optional deep dives: personas in `agents/`.
 - [ ] `PROJECT_STATUS.md` only for **verified** capabilities
 - [ ] `ROADMAP.md` / `TECH_DEBT.md` updated when closing items
 
+### Git / commit hygiene
+- [ ] No AI attribution trailers in any commit on the branch (`Co-authored-by:
+  Cursor`, `Claude`, `Codex`, `Generated-by:`, `Created-by: AI`, etc.)
+- [ ] `bash scripts/ci/check_no_ai_commit_trailers.sh` passes for the branch
+  range (included in `make policy-guards`)
+
 ### Backward compatibility
 - [ ] `/api/v1` contract preserved or breaking change documented
 - [ ] Legacy routes unchanged unless explicitly gated

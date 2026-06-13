@@ -56,6 +56,21 @@ Personas **do not override** `.ai-rules/`. They add focus for review tasks.
 | CI policy scripts | `make policy-guards` |
 | AI workflow file presence | `make validate-ai-workflows` |
 
+## Commit messages (agents)
+
+AI assistants MUST NOT add attribution trailers to commits. Before committing:
+
+1. Read `.ai-rules/git.md` (forbidden trailers and verification steps).
+2. Show or verify the exact subject + body with the user when they requested a
+   commit.
+3. Run `bash scripts/ci/check_no_ai_commit_trailers.sh --message-file <file>`
+   on the proposed message, or run `make policy-guards` before push.
+4. Install commit-msg hook once: `uv run pre-commit install --hook-type commit-msg`.
+
+IDE/agent integrations may inject `Co-authored-by: Cursor <cursoragent@cursor.com>`
+automatically. Inspect the final message with `git log -1 --pretty=format:%B`
+before push even when hooks are installed.
+
 ## Template reuse
 
 Human docs: `docs/template-onboarding.md`, `docs/template-usage.md`,

@@ -19,6 +19,10 @@ Implement the **next safe roadmap or TECH_DEBT task** unless the user named a sp
 4. Implement with tests; run targeted pytest then `make validate`.
 5. Update `ROADMAP.md` / `TECH_DEBT.md` / `PROJECT_STATUS.md` / README only when behavior or verified capabilities change.
 6. Do **not** commit, push, or merge unless the user explicitly asks.
-7. Report: files changed, tests run, validation result, risks, remaining work.
+7. When committing: verify the exact message has **no** AI attribution trailers
+   (`Co-authored-by: Cursor`, `Claude`, `Codex`, `Generated-by:`, `Created-by: AI`).
+   Run `bash scripts/ci/check_no_ai_commit_trailers.sh --message-file <file>` or
+   `make policy-guards` before push. See `.ai-rules/git.md`.
+8. Report: files changed, tests run, validation result, risks, remaining work.
 
 If the next item is P3 optional or doc-only, state that and proceed only if it is clearly safe and requested.

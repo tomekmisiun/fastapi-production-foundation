@@ -63,3 +63,17 @@ Every task response MUST include:
 
 Follow `.ai-rules/git.md`: no commit/push/merge unless the user explicitly
 requests it.
+
+Before any commit:
+
+1. Draft the exact subject and body (Conventional Commits).
+2. Show or verify that message with the user when they requested a commit.
+3. Confirm it contains **no** AI attribution trailers (`Co-authored-by: Cursor`,
+   `Co-authored-by: Claude`, `Generated-by:`, `Created-by: AI`, etc.).
+4. Run `bash scripts/ci/check_no_ai_commit_trailers.sh --message-file <file>`
+   on the proposed message, or inspect `git log -1 --pretty=format:%B` after
+   commit and before push.
+5. Run `make policy-guards` before push when the branch includes new commits.
+
+Install the commit-msg hook once per clone:
+`uv run pre-commit install --hook-type commit-msg`.

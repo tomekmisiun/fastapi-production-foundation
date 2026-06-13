@@ -18,7 +18,7 @@ Workflow overview: **`docs/ai-workflows.md`**
 - `testing.md` — pytest requirements and test integrity
 - `docker.md` — Compose and production runtime safety
 - `documentation.md` — README, docs, tracking files
-- `git.md` — branches, commits, push/merge approval
+- `git.md` — branches, commits (no AI attribution trailers), push/merge approval
 
 ### Workflow (how to work)
 - `agent-orchestration.md` — start every task here
