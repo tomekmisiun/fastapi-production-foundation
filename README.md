@@ -5,10 +5,9 @@ with authentication, user management, audit logging, PostgreSQL, Redis, Docker,
 and pytest.
 
 This repository is a **production-oriented foundation**, not a finished SaaS
-platform or enterprise-grade product. P0 production-readiness blockers from the
-June 2026 audit are closed (see `PROJECT_STATUS.md` and `ROADMAP.md`); **P1**
-work remains before calling the template fully hardened for long-running
-production adoption.
+platform or enterprise-grade product. P0 production-readiness blockers and **P1**
+adoption hardening from the June 2026 audit are closed (see `PROJECT_STATUS.md`
+and `ROADMAP.md`); **P2** scale and maintainability work is also complete.
 
 **New project?** Start with `docs/template-onboarding.md`.
 
@@ -1051,8 +1050,13 @@ graceful shutdown, Redis cache degradation, retention jobs, CI/deploy fixes,
 observability doc repair, and related items are merged. See `ROADMAP.md` P1
 (all Done) and `PROJECT_STATUS.md`.
 
-**Next template engineering focus:** ROADMAP **P2** improvements and remaining
-open debt in `TECH_DEBT.md`.
+**P2 scale and maintainability (June 2026):** Closed — keyset pagination,
+storage performance, worker observability, domain exceptions in services, tenant
+seed refactor, and related items are merged. See `ROADMAP.md` P2 (all Done) and
+`PROJECT_STATUS.md`.
+
+**Next template engineering focus:** ROADMAP **P3** optional improvements and
+remaining open debt in `TECH_DEBT.md`.
 
 Each downstream project must still decide and wire up:
 
