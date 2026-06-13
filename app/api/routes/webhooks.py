@@ -3,6 +3,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.idempotency import get_idempotency_key
+from app.api.dependencies.rate_limit import (
+    enforce_webhook_provider_rate_limit,
+    webhook_ingress_rate_limit,
+)
 from app.api.openapi import AUTH_ERROR_RESPONSES
 from app.core.config import settings
 from app.db.session import get_db
@@ -16,6 +20,7 @@ from app.services.idempotency_service import (
     store_response,
 )
 from app.services.webhook_service import (
+    enforce_webhook_body_size,
     persist_webhook_event,
     verify_inbound_webhook_signature,
 )
@@ -39,10 +44,12 @@ async def inbound_webhook(
     request: Request,
     db: Session = Depends(get_db),
     idempotency_key: str = Depends(get_idempotency_key),
+    _: None = Depends(webhook_ingress_rate_limit()),
     signature: str | None = Header(default=None, alias="X-Webhook-Signature"),
     timestamp: str | None = Header(default=None, alias="X-Webhook-Timestamp"),
 ):
     raw_body = await request.body()
+    enforce_webhook_body_size(raw_body)
     scope_key = build_scope_key("webhooks:inbound", idempotency_key)
     cached_record, lock_acquired = begin_idempotent_request(db, scope_key)
 
@@ -59,6 +66,7 @@ async def inbound_webhook(
         )
 
         payload = WebhookInboundRequest.model_validate_json(raw_body)
+        enforce_webhook_provider_rate_limit(payload.provider)
 
         try:
             persist_webhook_event(

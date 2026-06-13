@@ -15,6 +15,15 @@ from app.models.webhook_event import WebhookEvent
 
 logger = logging.getLogger("app.webhooks")
 
+
+def enforce_webhook_body_size(raw_body: bytes) -> None:
+    if len(raw_body) > settings.webhook_max_body_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="Webhook payload too large",
+        )
+
+
 def persist_webhook_event(
     db: Session,
     *,

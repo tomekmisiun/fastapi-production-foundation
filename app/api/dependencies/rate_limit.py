@@ -101,3 +101,43 @@ def password_reset_rate_limit(request: Request):
             status_code=429,
             detail="Too many requests",
         )
+
+
+def webhook_ingress_rate_limit():
+    def dependency(request: Request):
+        client_ip = get_client_ip(request)
+        key = f"rate_limit:webhook_ingress:{client_ip}"
+        current_count = redis_client.incr(key)
+
+        if current_count == 1:
+            redis_client.expire(
+                key,
+                settings.webhook_ingress_rate_limit_window_seconds,
+            )
+
+        if current_count > settings.webhook_ingress_rate_limit_limit:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many requests",
+            )
+
+    return dependency
+
+
+def enforce_webhook_provider_rate_limit(provider: str) -> None:
+    normalized_provider = provider.strip().lower()
+
+    if normalized_provider == "":
+        return
+
+    key = f"rate_limit:webhook_provider:{normalized_provider}"
+    current_count = redis_client.incr(key)
+
+    if current_count == 1:
+        redis_client.expire(key, settings.webhook_provider_rate_limit_window_seconds)
+
+    if current_count > settings.webhook_provider_rate_limit_limit:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests",
+        )
