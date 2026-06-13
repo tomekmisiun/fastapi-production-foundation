@@ -119,6 +119,85 @@ def test_readiness_check_returns_503_when_redis_is_unavailable(client, monkeypat
     }
 
 
+def test_s3_health_check(client, monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.readiness_check_s3_enabled", True)
+
+    class OkProvider:
+        def verify_bucket_access(self):
+            return None
+
+    class OkStorageService:
+        provider = OkProvider()
+
+    monkeypatch.setattr(
+        "app.services.health_service.get_storage_service",
+        lambda: OkStorageService(),
+    )
+
+    response = client.get("/health/s3")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "checks": {
+            "object_storage": {"status": "ok"},
+        },
+    }
+
+
+def test_readiness_check_returns_503_when_s3_is_unavailable(client, monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.readiness_check_s3_enabled", True)
+    class FailingProvider:
+        def verify_bucket_access(self):
+            raise RuntimeError("s3 unavailable")
+
+    class FailingStorageService:
+        provider = FailingProvider()
+
+    monkeypatch.setattr(
+        "app.services.health_service.get_storage_service",
+        lambda: FailingStorageService(),
+    )
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 503
+    assert response.json()["checks"]["object_storage"] == {
+        "status": "unavailable",
+        "message": "object storage unavailable",
+    }
+
+
+def test_readiness_check_skips_s3_when_disabled(client, monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.readiness_check_s3_enabled", False)
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert "object_storage" not in response.json()["checks"]
+
+
+def test_readiness_check_includes_s3_when_enabled(client, monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.readiness_check_s3_enabled", True)
+
+    class OkProvider:
+        def verify_bucket_access(self):
+            return None
+
+    class OkStorageService:
+        provider = OkProvider()
+
+    monkeypatch.setattr(
+        "app.services.health_service.get_storage_service",
+        lambda: OkStorageService(),
+    )
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json()["checks"]["object_storage"] == {"status": "ok"}
+
+
 def test_redis_health_check_returns_503_when_redis_is_unavailable(
     client,
     monkeypatch,
