@@ -134,6 +134,7 @@ class Settings(BaseSettings):
     idempotency_processing_lock_ttl_seconds: int = Field(default=60, gt=0)
     api_shutdown_grace_seconds: float = Field(default=30.0, ge=0)
     worker_shutdown_grace_seconds: float = Field(default=60.0, ge=0)
+    readiness_check_s3_enabled: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

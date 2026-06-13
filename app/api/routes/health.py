@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.rate_limit import rate_limit
 from app.db.session import get_db
 from app.schemas.health import HealthStatus, ReadinessHealth
-from app.services.health_service import check_database, check_redis, get_readiness
+from app.services.health_service import check_database, check_redis, check_s3, get_readiness
 
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -45,7 +45,7 @@ def liveness_check():
     response_model=ReadinessHealth,
     response_model_exclude_none=True,
     summary="Readiness probe",
-    description="Checks database and Redis dependencies required to serve traffic.",
+    description="Checks database, Redis, and optional object storage dependencies required to serve traffic.",
 )
 def readiness_check(db: Session = Depends(get_db)):
     return readiness_response(get_readiness(db))
@@ -79,6 +79,22 @@ def redis_health():
         ReadinessHealth(
             status=redis_check.status,
             checks={"redis": redis_check},
+        )
+    )
+
+
+@router.get(
+    "/s3",
+    response_model=ReadinessHealth,
+    response_model_exclude_none=True,
+    summary="Object storage health check",
+)
+def s3_health():
+    s3_check = check_s3()
+    return readiness_response(
+        ReadinessHealth(
+            status=s3_check.status,
+            checks={"object_storage": s3_check},
         )
     )
 

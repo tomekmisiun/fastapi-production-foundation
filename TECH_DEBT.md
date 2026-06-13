@@ -43,7 +43,7 @@ For verified current capabilities, see `PROJECT_STATUS.md`.
 
 | ID | Issue | Impact | Recommendation | Effort | Status |
 |----|-------|--------|----------------|--------|--------|
-| TD-016 | No Docker `HEALTHCHECK` or compose healthchecks. | Orchestrators route traffic to hung containers; slow incident detection. | Add healthcheck hitting `/health/live`; wire compose conditions. | S | Open |
+| TD-016 | No Docker `HEALTHCHECK` or compose healthchecks. | Orchestrators route traffic to hung containers; slow incident detection. | Add healthcheck hitting `/health/live`; wire compose conditions. | S | Done |
 | TD-017 | No graceful shutdown for API or worker (`app/worker.py`, `app/main.py`). | Deployments drop in-flight work; jobs remain in processing queue. | SIGTERM handlers, drain timeout, FastAPI lifespan hooks. | M | Done |
 | TD-018 | Python 3.14 base image (`Dockerfile`). | Hosting/ecosystem lag across hundreds of forks. | Pin to 3.12/3.13 LTS unless 3.14 is intentional. | S | Open |
 | TD-019 | Webhook ingress has no rate limit or max body size (`app/api/routes/webhooks.py`). | DoS via large payloads or high request volume. | Body size middleware; rate limit by provider/IP. | S | Done |
@@ -59,7 +59,7 @@ For verified current capabilities, see `PROJECT_STATUS.md`.
 | TD-029 | New boto3 S3 client created per request (`get_storage_service()` in `app/services/storage_service.py`). | Connection overhead on file endpoints under concurrency. | Lifespan-cached or module-level client. | S | Open |
 | TD-030 | Direct uploads buffer entire file in memory (`read_upload_body_limited`). | Memory spikes with concurrent max-size uploads. | Stream to S3 multipart upload. | M | Open |
 | TD-031 | Presigned upload complete re-downloads object from S3 for sniff/scan. | 2× bandwidth; API acts as proxy at scale. | Scan at bucket edge or async worker. | M | Open |
-| TD-032 | Readiness checks DB and Redis only, not S3 (`app/api/routes/health.py`). | Load balancer marks ready while uploads fail at runtime. | Optional S3 head-bucket in readiness when file features enabled. | S | Open |
+| TD-032 | Readiness checks DB and Redis only, not S3 (`app/api/routes/health.py`). | Load balancer marks ready while uploads fail at runtime. | Optional S3 head-bucket in readiness when file features enabled. | S | Done |
 | TD-033 | User update and audit log are separate DB commits (`app/api/routes/users.py`). | User changed without audit row on partial failure. | Single transaction or outbox pattern. | M | Open |
 | TD-034 | Tenant `ContextVar` tokens stored but never reset (`app/api/dependencies/tenant.py`). | Stale tenant context under thread-reuse edge cases. | Clear tenant context at request entry in middleware. | S | Done |
 | TD-035 | CI `docker-build` job does not depend on `test` (`.github/workflows/ci.yml`). | Image can pass Trivy while tests fail on same commit. | Add `needs: [test]`. | S | Open |
