@@ -41,7 +41,8 @@ make validate           # ruff + pytest (85% coverage floor)
 
 Default dev login (after seed): `admin@example.local` / `devpassword123` — change before shared environments. Details: [`app/seed_dev_data.py`](app/seed_dev_data.py).
 
-For day-two local commands (migrations, tests, lint), see [Common commands](#common-commands).
+For day-to-day commands and local modes, see [Local development](#local-development).
+Full Makefile reference: [`docs/commands.md`](docs/commands.md).
 
 ---
 
@@ -64,24 +65,37 @@ Multi-tenant isolation, platform admin boundaries, and legacy route policy: [`do
 
 ---
 
-## Common commands
+## Local development
+
+The default path is **Docker Compose-first**: API, worker, Postgres, Redis, and
+MinIO run in containers. Most `make` targets exec into the `api` service.
+
+**First setup** (once after `cp .env.example .env`):
+
+```bash
+make bootstrap    # compose up, migrate, seed, smoke
+```
+
+**Daily commands**:
 
 | Command | Purpose |
 |---------|---------|
-| `make install` | `uv sync` — install dependencies |
-| `make bootstrap` | Start stack, migrate, seed tenant + dev data, smoke test |
-| `make validate` | Ruff + pytest with 85% coverage floor (same gate as CI) |
-| `make docker-up` / `make docker-down` | Start / stop Compose stack |
-| `make run` | API on host via `uvicorn --reload` (without Compose API container) |
-| `make test` / `make test-coverage` | Pytest inside running API container |
-| `make migration-upgrade` | `alembic upgrade head` |
-| `make seed-tenant` / `make seed` | Default tenant + dev users |
-| `make smoke` | HTTP smoke script against running API |
-| `make policy-guards` | CI policy scripts locally |
-| `make validate-ai-workflows` | Check required AI workflow files |
-| `make db-backup` / `make db-restore-check` | Backup / restore rehearsal scripts |
+| `make docker-up` / `make docker-down` | Start / stop the Compose stack |
+| `make test` / `make test-coverage` | Pytest in the API container |
+| `make lint` / `make lint-fix` | Ruff check (with optional auto-fix) |
+| `make validate` | Ruff + pytest with 85% coverage floor (CI-equivalent gate) |
+| `make migration-upgrade` | Apply Alembic migrations (`upgrade head`) |
 
-Full target list: [`Makefile`](Makefile). Troubleshooting: [`docs/troubleshooting.md`](docs/troubleshooting.md).
+**Local modes**
+
+| Mode | When to use | Typical flow |
+|------|-------------|--------------|
+| **Compose-first** (default) | Normal development and parity with CI | `make docker-up` → edit code → `make test` / `make lint` / `make validate` |
+| **Host API** | Faster uvicorn reload on the host without the Compose `api` container | `make install` → `make run` — Postgres, Redis, and MinIO must still be reachable (usually `make docker-up` without relying on the `api` service, or external URLs in `.env`) |
+
+Seeding, smoke checks, policy guards, backups, deploy dry-runs, and load tests
+are documented in [`docs/commands.md`](docs/commands.md). Troubleshooting:
+[`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 ---
 
@@ -121,6 +135,7 @@ Architecture decision: sync-first API — [`docs/adr/0001-sync-vs-async-architec
 
 | Document | Purpose |
 |----------|---------|
+| [`docs/commands.md`](docs/commands.md) | Full Makefile target reference by category |
 | [`.env.example`](.env.example) | Environment variable reference (full list) |
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Common local and CI failures |
 | [`docs/ci-policy-guards.md`](docs/ci-policy-guards.md) | Pre-commit and CI guard rules |
