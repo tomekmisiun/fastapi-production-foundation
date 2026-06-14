@@ -43,7 +43,15 @@ jobs:
           BACKUP_HOOK_TOKEN: ${{ secrets.BACKUP_HOOK_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || inputs.dry_run }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
+          skip_unconfigured_scheduled_backup() {
+            echo "$1"
+            echo "Set the required secret on the production GitHub environment to enable daily scheduled backups."
+            echo "See docs/pitr-and-scheduled-backups.md"
+            exit 0
+          }
+
           if [[ "${DRY_RUN}" == "true" ]]; then
             if [[ "${BACKUP_MODE}" == "provider-hook" && -z "${BACKUP_HOOK_URL:-}" ]]; then
               echo "BACKUP_HOOK_URL is not configured for this environment; backup dry run only."
@@ -60,12 +68,20 @@ jobs:
           fi
 
           if [[ "${BACKUP_MODE}" == "provider-hook" && -z "${BACKUP_HOOK_URL:-}" ]]; then
-            echo "BACKUP_HOOK_URL is required for scheduled backups in provider-hook mode." >&2
+            if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+              skip_unconfigured_scheduled_backup \
+                "BACKUP_HOOK_URL is not configured; skipping scheduled backup."
+            fi
+            echo "BACKUP_HOOK_URL is required for backups in provider-hook mode." >&2
             exit 1
           fi
 
           if [[ "${BACKUP_MODE}" == "direct" && -z "${DATABASE_URL:-}" ]]; then
-            echo "DATABASE_URL is required for scheduled backups in direct mode." >&2
+            if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+              skip_unconfigured_scheduled_backup \
+                "DATABASE_URL is not configured; skipping scheduled backup."
+            fi
+            echo "DATABASE_URL is required for backups in direct mode." >&2
             exit 1
           fi
 
