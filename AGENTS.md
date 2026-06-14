@@ -6,6 +6,12 @@ making changes. Do not duplicate rule bodies here.
 Workflow overview: **`docs/ai-workflows.md`** · Two-agent review:
 **`docs/two-agent-review-workflow.md`**
 
+After every non-trivial file-changing task, Codex MUST spawn the native
+`reviewer` subagent before the final response. No second user prompt, pasted
+handoff, local runner command, or separate CLI window is required. The final
+response must include the Builder summary and Reviewer verdict. Read-only or
+trivial tasks may skip Reviewer only with an explicit reason.
+
 ## Binding rules (`.ai-rules/`)
 
 ### Core
@@ -20,6 +26,7 @@ Workflow overview: **`docs/ai-workflows.md`** · Two-agent review:
 - `docker.md` — Compose and production runtime safety
 - `documentation.md` — README, docs, tracking files
 - `git.md` — branches, commits (no AI attribution trailers), push/merge approval
+- `anti-overengineering.md` — avoid unnecessary abstractions, files, dependencies
 
 ### Workflow (how to work)
 - `agent-orchestration.md` — start every task here
@@ -29,15 +36,17 @@ Workflow overview: **`docs/ai-workflows.md`** · Two-agent review:
 - `incremental-work.md` — thin slices and validation cadence
 - `tdd-and-regression.md` — failing test first, coverage expectations
 - `review.md` — pre-merge checklist
+- `learning-mode.md` — mentor-style completion format for non-trivial tasks
 - `threat-modeling.md` — auth, tenancy, uploads, webhooks, workers
 - `template-onboarding.md` — clone into a new product (agent workflow)
 
 ## Optional (not binding)
 
 - **`agents/`** — review personas (backend, security, tenancy, DB, CI, onboarding)
-- **`.commands/`** — copy-paste prompts (spec, plan, builder handoff, two-agent
-  review, audit, onboard)
+- **`.commands/`** — prompt formats and procedures (spec, plan, builder
+  handoff, two-agent review, audit, onboard)
 - **`docs/two-agent-review-workflow.md`** — Builder / Reviewer handoff pattern
+- **`docs/learning/`** — code-verified mental maps and interview defense
 - **`docs/specs/`** — feature spec conventions
 - **`docs/decisions/`** → ADRs in **`docs/adr/`**
 
