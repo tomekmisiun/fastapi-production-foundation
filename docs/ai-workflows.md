@@ -6,12 +6,13 @@ How AI tooling should use this repository's rules, personas, and commands.
 
 | Layer | Location | Binding? | Purpose |
 |-------|----------|----------|---------|
-| **Project rules** | `.ai-rules/` | **Yes** | Architecture, security, testing, git, docs — must follow |
-| **Entry indexes** | `AGENTS.md`, `CLAUDE.md` | Pointer only | Tool-specific entry; no duplicated rule bodies |
-| **Cursor wrappers** | `.cursor/rules/*.mdc` | Pointer only | Load `.ai-rules/` context in Cursor |
-| **Workflow rules** | `.ai-rules/agent-orchestration.md`, etc. | **Yes** | How to start tasks, plan, review, onboard |
+| **Project rules** | `.ai-rules/` | **Yes** | Architecture, security, testing, git, docs, anti-overengineering — must follow |
+| **Codex entry index** | `AGENTS.md` | Pointer only | Codex CLI entry; points to `.ai-rules/` |
+| **Claude Code entry index** | `CLAUDE.md` | Pointer only | Claude Code CLI entry; points to `.ai-rules/` |
+| **Cursor wrappers** | `.cursor/rules/*.mdc` | Pointer only | Cursor entry; points to `.ai-rules/` and must not duplicate rule bodies |
+| **Workflow rules** | `.ai-rules/agent-orchestration.md`, `learning-mode.md`, etc. | **Yes** | How to start tasks, plan, review, explain changes |
 | **Personas** | `agents/` | Optional | Review lenses (backend, security, tenancy, …) |
-| **Commands** | `.commands/` | Optional | Copy-paste prompts for spec/plan/review/onboard |
+| **Commands** | `.commands/` | Optional | Prompt formats and procedures for spec/plan/review/onboard |
 | **Specs** | `docs/specs/` | Optional | Larger feature specs before implementation |
 | **ADRs** | `docs/adr/` | Reference | Recorded architecture decisions |
 
@@ -19,21 +20,51 @@ How AI tooling should use this repository's rules, personas, and commands.
 
 1. Read `.ai-rules/agent-orchestration.md`
 2. Use `.ai-rules/context-map.md` to open relevant binding rules and code paths
-3. For non-trivial work: `.ai-rules/spec-driven-development.md` →
+3. Always include `.ai-rules/anti-overengineering.md` before adding files,
+   dependencies, abstractions, or large rewrites.
+4. For non-trivial work: `.ai-rules/spec-driven-development.md` →
    `.ai-rules/planning-and-task-breakdown.md` → `.ai-rules/incremental-work.md`
-4. Before merge: `.ai-rules/review.md`
+5. Before merge: `.ai-rules/review.md`
+6. Learning the repo or mentor-style explanations: `docs/learning/` +
+   `.ai-rules/learning-mode.md`
+
+## Tool Entry Points
+
+| Tool | Entry point | Anti-overengineering source |
+|------|-------------|-----------------------------|
+| Cursor | `.cursor/rules/project.mdc` | `.ai-rules/anti-overengineering.md` |
+| Codex CLI | `AGENTS.md` | `.ai-rules/anti-overengineering.md` |
+| Claude Code CLI | `CLAUDE.md` | `.ai-rules/anti-overengineering.md` |
 
 ## Two-agent review (Builder + Reviewer)
 
-For non-trivial branches, split **implementation** and **review** across two
-agent sessions:
+For non-trivial file-changing tasks, the active Builder Agent completes the
+work, runs applicable validation, then automatically invokes the native
+read-only Reviewer subagent before the final response.
 
-1. **Builder Agent** — implements on a feature branch, runs validation, then
-   outputs handoff via **`.commands/builder-handoff.md`** (objective, changed
-   files, diff, validation, impact sections).
-2. **Reviewer Agent** — fresh session; paste this handoff plus
-   **`.commands/two-agent-review.md`**. Reviews only; does not edit code unless
-   explicitly asked.
+1. The user gives one normal task.
+2. Builder follows the relevant `.ai-rules/`, edits the workspace if needed,
+   and runs validation.
+3. Builder invokes the Reviewer subagent automatically.
+4. Reviewer stays read-only and inspects current git diff, untracked files,
+   validation output, security and production risks, tests, docs drift,
+   overengineering, and scope creep.
+5. Builder waits for the Reviewer result.
+6. Builder returns a combined final response with Builder summary and Reviewer
+   verdict.
+7. The user can say `fix` to request fixes or `approve` to allow
+   commit/push/merge/delete operations under `.ai-rules/git.md`.
+
+Codex CLI reaches this through `AGENTS.md` and the native `reviewer` subagent in
+`.codex/agents/reviewer.toml`. Claude Code reaches it through `CLAUDE.md` and
+the native `code-reviewer` subagent in `.claude/agents/code-reviewer.md`.
+Cursor reaches the binding rule through `.cursor/rules/project.mdc`; if native
+subagent review is not available in the active Cursor environment, it must still
+follow `.ai-rules/agent-orchestration.md`.
+
+`.commands/builder-handoff.md` is the concise Builder handoff format (no pasted
+diff). Reviewer reads **only** `.ai-rules/review-checklist.md`. Not a manual
+copy-paste requirement for Codex CLI or Claude Code.
 
 Full workflow: **`docs/two-agent-review-workflow.md`**.
 
@@ -48,11 +79,12 @@ the merge gate.
 | Break into tasks | `.commands/plan.md` |
 | Implement next roadmap item | `.commands/build-next-roadmap-task.md` |
 | Pre-PR review | `.commands/review-current-branch.md` |
-| Two-agent handoff (Builder) | `.commands/builder-handoff.md` — pairs with Reviewer command below |
-| Two-agent review (Reviewer) | `.commands/two-agent-review.md` |
+| Two-agent handoff (Builder) | `.commands/builder-handoff.md` |
+| Two-agent review (Reviewer) | `.ai-rules/review-checklist.md` |
 | Security audit | `.commands/security-audit.md` |
 | Clone for new product | `.commands/template-onboard.md` |
 | Sync tracking docs | `.commands/update-project-status.md` |
+| Learn the codebase | `docs/learning/00-current-state-audit.md` |
 
 ## Personas (review only)
 
