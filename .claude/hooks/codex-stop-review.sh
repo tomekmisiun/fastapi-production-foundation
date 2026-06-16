@@ -22,21 +22,29 @@ if git diff --quiet --exit-code \
   exit 0
 fi
 
-PROMPT="Jesteś read-only reviewerem. Uruchom 'git status --short',
-'git diff --stat', 'git diff', 'git diff --cached' i
-'git ls-files --others --exclude-standard', żeby zobaczyć niezacommitowane
-zmiany, w tym staged i untracked. Oceń, czy zmiany są spójne, sensowne i nie
-zawierają oczywistych błędów (bezpieczeństwo, brak tenant_id, logika w routach
-zamiast services, brakujące testy, głupie/zbędne rzeczy).
-Zacznij odpowiedź od jednego słowa: APPROVE (jeśli OK) albo FIX (jeśli są
-braki). Po FIX wypisz zwięzłą listę konkretnych problemów. Nie modyfikuj
-plików."
+# Model selection: honour the same env-var override hierarchy as invoke-cross-reviewer.sh
+# (AI_REVIEW_MODEL → CODEX_REVIEW_MODEL → hardcoded default).
+REVIEW_MODEL="${AI_REVIEW_MODEL:-${CODEX_REVIEW_MODEL:-gpt-5.5}}"
+
+PROMPT="You are a read-only reviewer. Run 'git status --short', 'git diff --stat',
+'git diff', 'git diff --cached', and 'git ls-files --others --exclude-standard'
+to inspect all uncommitted changes (staged and untracked). Assess whether the
+changes are coherent, correct, and free of obvious problems (security issues,
+missing tenant_id scoping, business logic in routes instead of services,
+missing tests, unnecessary complexity).
+Start your response with exactly one word: APPROVE (if everything looks fine)
+or FIX (if there are issues). After FIX list the specific problems concisely.
+Do not modify any files."
+
+# Inner timeout must be shorter than the outer hook timeout (settings.json: 150 s)
+# so the advisory FIX output can be produced before the process is killed.
+INNER_TIMEOUT=120
 
 OUTPUT_FILE="$(mktemp)"
 RAW_OUTPUT="$(
-  timeout 150 codex exec -s read-only \
+  timeout "$INNER_TIMEOUT" codex exec -s read-only \
     -c model_reasoning_effort=\"low\" \
-    -m gpt-5.5 \
+    -m "$REVIEW_MODEL" \
     --output-last-message "$OUTPUT_FILE" \
     "$PROMPT" 2>&1
 )"
@@ -46,7 +54,7 @@ rm -f "$OUTPUT_FILE"
 
 if [[ $STATUS -eq 124 ]]; then
   OUTPUT="FIX
-Codex review timed out after 150 seconds."
+Codex review timed out after ${INNER_TIMEOUT} seconds."
 elif [[ $STATUS -ne 0 ]]; then
   OUTPUT="FIX
 Codex review command failed with exit code $STATUS.
