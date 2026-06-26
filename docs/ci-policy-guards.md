@@ -108,20 +108,12 @@ via `gitleaks/gitleaks-action@v3` (Node.js 24 runtime) on every PR and push to
 
 ### Docker Hub pulls in CI
 
-Jobs that run `docker compose up` (`test`, `load-smoke`, and manual
-`load-threshold` / `backup-rehearsal` workflows) log in to Docker Hub before
-pulling `postgres`, `redis`, and `minio` images. Without authenticated pulls,
-GitHub-hosted runners can hit anonymous rate limits (`unauthorized: authentication
-required`).
+Jobs that run `docker compose up` use `docker-compose.ci.yml` as an override.
+It pulls `postgres` and `redis` from AWS Public ECR and `minio` from Quay.io so
+CI does not depend on Docker Hub rate limits or repository secrets.
 
-Repository secrets (Settings → Secrets and variables → Actions):
-
-| Secret | Value |
-|--------|-------|
-| `DOCKERHUB_USERNAME` | Docker Hub username |
-| `DOCKERHUB_TOKEN` | Docker Hub access token (read scope is enough) |
-
-Create the token at [hub.docker.com/settings/security](https://hub.docker.com/settings/security).
+Local development still uses `docker-compose.yml` (Docker Hub images). Optional
+`DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` secrets are not required for CI.
 
 ## Pre-commit (cheap local checks)
 

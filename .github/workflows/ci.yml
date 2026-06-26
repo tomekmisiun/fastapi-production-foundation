@@ -85,6 +85,7 @@ jobs:
       S3_BUCKET_NAME: uploads
       S3_REGION_NAME: us-east-1
       COVERAGE_FILE: /tmp/.coverage
+      COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
 
     steps:
       - name: Checkout code
@@ -107,12 +108,6 @@ jobs:
           S3_ACCESS_KEY_ID=minioadmin
           S3_SECRET_ACCESS_KEY=minioadmin
           EOF
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Start test dependencies
         run: docker compose up -d db test_db redis minio
@@ -153,6 +148,8 @@ jobs:
     needs:
       - pre-commit
       - policy-guards
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
 
     steps:
       - name: Checkout code
@@ -167,12 +164,6 @@ jobs:
           S3_ACCESS_KEY_ID=minioadmin
           S3_SECRET_ACCESS_KEY=minioadmin
           EOF
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Start API stack for load smoke
         run: docker compose up -d db redis api

@@ -18,6 +18,8 @@ permissions:
 jobs:
   load-thresholds:
     runs-on: ubuntu-latest
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
 
     steps:
       - name: Checkout code
@@ -32,12 +34,6 @@ jobs:
           S3_ACCESS_KEY_ID=minioadmin
           S3_SECRET_ACCESS_KEY=minioadmin
           EOF
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Start stack
         run: docker compose up -d db redis api
