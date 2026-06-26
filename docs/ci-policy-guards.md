@@ -103,7 +103,25 @@ in the PR description.
 ### Secrets scan
 
 The `secrets-scan` job runs [gitleaks](https://github.com/gitleaks/gitleaks)
-on every PR and push to `main`.
+via `gitleaks/gitleaks-action@v3` (Node.js 24 runtime) on every PR and push to
+`main`.
+
+### Docker Hub pulls in CI
+
+Jobs that run `docker compose up` (`test`, `load-smoke`, and manual
+`load-threshold` / `backup-rehearsal` workflows) log in to Docker Hub before
+pulling `postgres`, `redis`, and `minio` images. Without authenticated pulls,
+GitHub-hosted runners can hit anonymous rate limits (`unauthorized: authentication
+required`).
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|--------|-------|
+| `DOCKERHUB_USERNAME` | Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (read scope is enough) |
+
+Create the token at [hub.docker.com/settings/security](https://hub.docker.com/settings/security).
 
 ## Pre-commit (cheap local checks)
 
