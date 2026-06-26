@@ -109,11 +109,16 @@ via `gitleaks/gitleaks-action@v3` (Node.js 24 runtime) on every PR and push to
 ### Docker Hub pulls in CI
 
 Jobs that run `docker compose up` use `docker-compose.ci.yml` as an override.
-It pulls `postgres` and `redis` from AWS Public ECR and `minio` from Quay.io so
-CI does not depend on Docker Hub rate limits or repository secrets.
+Postgres and Redis pull from AWS Public ECR; MinIO uses Docker Hub (same tag as
+local compose). `scripts/ci/compose_pull_retry.sh` retries pulls when registries
+return rate-limit errors.
 
-Local development still uses `docker-compose.yml` (Docker Hub images). Optional
-`DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` secrets are not required for CI.
+Optional `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` secrets improve MinIO pull
+reliability. Set the token with `gh secret set DOCKERHUB_TOKEN --body "$TOKEN"`
+(no trailing newline).
+
+The `test` job also runs the load-threshold smoke check after pytest so CI does
+not start a second parallel compose stack.
 
 ## Pre-commit (cheap local checks)
 

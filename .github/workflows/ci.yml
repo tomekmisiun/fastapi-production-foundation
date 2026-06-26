@@ -109,8 +109,17 @@ jobs:
           S3_SECRET_ACCESS_KEY=minioadmin
           EOF
 
+      - name: Log in to Docker Hub
+        continue-on-error: true
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Start test dependencies
-        run: docker compose up -d db test_db redis minio
+        run: |
+          bash scripts/ci/compose_pull_retry.sh db test_db redis minio
+          docker compose up -d db test_db redis minio
 
       - name: Prepare app database for backup rehearsal
         run: docker compose run --rm api alembic upgrade head
@@ -139,34 +148,8 @@ jobs:
           name: coverage-xml
           path: coverage.xml
 
-      - name: Stop containers
-        if: always()
-        run: docker compose down
-
-  load-smoke:
-    runs-on: ubuntu-latest
-    needs:
-      - pre-commit
-      - policy-guards
-    env:
-      COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Create env file for compose
-        run: |
-          cat > .env <<EOF
-          DATABASE_URL=postgresql://app_user:app_password@db:5432/app_db
-          TEST_DATABASE_URL=postgresql://app_user:app_password@test_db:5432/app_test_db
-          SECRET_KEY=test-secret-key-for-ci-only
-          S3_ACCESS_KEY_ID=minioadmin
-          S3_SECRET_ACCESS_KEY=minioadmin
-          EOF
-
-      - name: Start API stack for load smoke
-        run: docker compose up -d db redis api
+      - name: Build and start API for load smoke
+        run: docker compose up -d --build api
 
       - name: Wait for API health
         run: |
