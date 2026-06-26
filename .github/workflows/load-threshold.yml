@@ -18,6 +18,8 @@ permissions:
 jobs:
   load-thresholds:
     runs-on: ubuntu-latest
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
 
     steps:
       - name: Checkout code

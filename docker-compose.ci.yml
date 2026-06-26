@@ -1,0 +1,11 @@
+# CI-only image mirrors — avoids Docker Hub anonymous rate limits without secrets.
+# Used as: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d ...
+services:
+  db:
+    image: public.ecr.aws/docker/library/postgres:17
+  test_db:
+    image: public.ecr.aws/docker/library/postgres:17
+  redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z

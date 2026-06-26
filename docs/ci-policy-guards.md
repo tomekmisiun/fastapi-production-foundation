@@ -103,7 +103,17 @@ in the PR description.
 ### Secrets scan
 
 The `secrets-scan` job runs [gitleaks](https://github.com/gitleaks/gitleaks)
-on every PR and push to `main`.
+via `gitleaks/gitleaks-action@v3` (Node.js 24 runtime) on every PR and push to
+`main`.
+
+### Docker Hub pulls in CI
+
+Jobs that run `docker compose up` use `docker-compose.ci.yml` as an override.
+It pulls `postgres` and `redis` from AWS Public ECR and `minio` from Quay.io so
+CI does not depend on Docker Hub rate limits or repository secrets.
+
+Local development still uses `docker-compose.yml` (Docker Hub images). Optional
+`DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` secrets are not required for CI.
 
 ## Pre-commit (cheap local checks)
 

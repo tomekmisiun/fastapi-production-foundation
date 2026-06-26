@@ -63,7 +63,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -85,6 +85,7 @@ jobs:
       S3_BUCKET_NAME: uploads
       S3_REGION_NAME: us-east-1
       COVERAGE_FILE: /tmp/.coverage
+      COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
 
     steps:
       - name: Checkout code
@@ -147,6 +148,8 @@ jobs:
     needs:
       - pre-commit
       - policy-guards
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
 
     steps:
       - name: Checkout code
